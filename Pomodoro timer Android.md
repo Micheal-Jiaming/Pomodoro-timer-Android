@@ -98,8 +98,11 @@ Two things the Android version does that the desktop one can't:
 ```
 Pomodoro timer Android\
 ├── Pomodoro timer Android.md     this file
+├── VERSION                       current version number — see Version control
+├── .gitignore                    keeps dist\, build\, .gradle\, local.properties out of git
+├── .gitattributes                stores every file byte for byte
 ├── dist\
-│   └── PomodoroTimer-debug.apk   the built app, 8.4 MB
+│   └── PomodoroTimer-debug.apk   the built app, 8.4 MB — not in git, rebuild it
 ├── make_launcher_icons.py        redraws the launcher icon (needs Pillow)
 ├── settings.gradle.kts           }
 ├── build.gradle.kts              } Gradle build, versions pinned as a known-good set
