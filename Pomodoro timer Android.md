@@ -161,12 +161,18 @@ Needs Pillow (`py -m pip install pillow`); the app itself doesn't.
 
 ## Version control
 
-This project is its own Git repository: `git init` in
-`D:\claude\Pomodoro timer Android`, with a bare mirror at
-`D:\claude\repos\Pomodoro timer Android.git` registered as `origin`. The
-repository name matches this document's filename. The desktop original is a
-**separate** repository (`D:\claude\repos\pomodoro-timer.git`) and the two
-version independently.
+This project is its own Git repository, with two remotes:
+
+| Remote | Points at |
+|---|---|
+| `origin` | `https://github.com/Micheal-Jiaming/Pomodoro-timer-Android` — private |
+| `mirror` | `D:\claude\repos\Pomodoro timer Android.git` — local bare copy |
+
+GitHub disallows spaces in repository names, hence `Pomodoro-timer-Android`.
+The desktop original is a **separate** repository
+(`github.com/Micheal-Jiaming/pomodoro-timer`) and the two version
+independently. Authentication is the GitHub CLI acting as git's credential
+helper (`gh auth setup-git`), so pushes need no interactive prompt.
 
 Tracked: the Gradle build files, everything under `app\src\`, the launcher-icon
 PNGs, `make_launcher_icons.py`, `gradle\wrapper\gradle-wrapper.properties`, and
@@ -180,7 +186,8 @@ and would otherwise rewrite these LF files to CRLF.
 
 **Versioning.** `VERSION` holds the current number; every release is tagged
 `v<number>`. The baseline is **1.0.0**, tagged `v1.0.0`, matching the `1.0` in
-`app\build.gradle.kts`; keep the two in step.
+`app\build.gradle.kts`; keep the two in step. **1.0.1** recorded the move to
+GitHub and changed no app code, so `versionName` stayed at `1.0`.
 
 | Update | Bump | Example |
 |---|---|---|
@@ -191,8 +198,9 @@ Edit `VERSION` in the same commit as the change, then tag and mirror:
 
 ```powershell
 git -C "D:\claude\Pomodoro timer Android" commit -am "..."
-git -C "D:\claude\Pomodoro timer Android" tag -a v1.0.1 -m "..."
+git -C "D:\claude\Pomodoro timer Android" tag -a v1.0.2 -m "..."
 git -C "D:\claude\Pomodoro timer Android" push origin main --tags
+git -C "D:\claude\Pomodoro timer Android" push mirror main --tags
 ```
 
 ## Status
