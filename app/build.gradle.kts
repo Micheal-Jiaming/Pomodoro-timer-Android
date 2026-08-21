@@ -3,6 +3,25 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+// The VERSION file at the project root is the single source of truth for the
+// version, so it cannot drift from what the app reports. versionName is the file
+// verbatim; versionCode is derived from it (1.1.0 -> 10100) so it always rises
+// with it, which is what Google Play and `adb install -r` require. A missing or
+// unparsable file yields the obviously-wrong name "0.0.0" rather than breaking
+// the build, and the code is floored at 1 because Android rejects 0.
+val versionFile = rootProject.file("VERSION")
+val appVersionName: String =
+    if (versionFile.isFile) versionFile.readText().trim() else "0.0.0"
+val appVersionCode: Int = appVersionName
+    .split(".")
+    .map { it.toIntOrNull() ?: 0 }
+    .let { parts ->
+        val major = parts.getOrElse(0) { 0 }
+        val minor = parts.getOrElse(1) { 0 }
+        val patch = parts.getOrElse(2) { 0 }
+        maxOf(major * 10_000 + minor * 100 + patch, 1)
+    }
+
 android {
     namespace = "com.pomodoro.timer"
     compileSdk = 34
@@ -11,8 +30,8 @@ android {
         applicationId = "com.pomodoro.timer"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
     }
 
     buildTypes {

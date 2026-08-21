@@ -11,7 +11,8 @@ dist\PomodoroTimer-debug.apk        8.4 MB
 ```
 
 Built and signed with the standard Android debug key, which is what emulators accept.
-`com.pomodoro.timer`, version 1.0, Android 8.0 (API 26) and newer.
+`com.pomodoro.timer`, `versionName` **1.1.0** / `versionCode` **10100** (both read
+from `VERSION` — see *Version control*), Android 8.0 (API 26) and newer.
 
 To run it:
 
@@ -188,16 +189,30 @@ out byte for byte; Git for Windows is configured `core.autocrlf=true` system-wid
 and would otherwise rewrite these LF files to CRLF.
 
 **Versioning.** `VERSION` holds the current number; every release is tagged
-`v<number>`. The baseline is **1.0.0**, tagged `v1.0.0`, matching the `1.0` in
-`app\build.gradle.kts`; keep the two in step. **1.0.1** recorded the move to
-GitHub and changed no app code, so `versionName` stayed at `1.0`.
+`v<number>`. The baseline was **1.0.0**; **1.0.1** recorded the move to GitHub
+and **1.0.2** reconciled this document with the files.
+
+`VERSION` is the *only* place the version is written. `app\build.gradle.kts`
+reads the file and sets `versionName` from it verbatim, deriving `versionCode`
+arithmetically (`1.1.0` → `10100`) so it always rises with it, as `adb install -r`
+and Google Play require. Nothing has to be kept in step by hand — up to **1.1.0**
+the Gradle file carried its own hard-coded `versionName = "1.0"`, which had
+already fallen a version behind. If `VERSION` is missing or unparsable the build
+still succeeds but reports `0.0.0`, which is meant to be conspicuous.
 
 | Update | Bump | Example |
 |---|---|---|
 | Major — new or changed functionality | +0.1 | 1.0.0 → 1.1.0 |
 | Minor — fixes, docs, small tweaks | +0.0.1 | 1.0.0 → 1.0.1 |
 
-Edit `VERSION` in the same commit as the change, then tag and mirror:
+**One bump per task, however many commits it takes** — not one per commit. A
+task that edits code and then updates this document is a single version; write
+the new number into `VERSION` in the task's last commit and tag there. Documented
+changes are never exempt: this file is what a later session works from, so a
+wrong line in it is a defect like any other. The rule is deliberately mechanical,
+because a rule needing judgement gets applied differently by every session.
+
+Then tag and push both remotes:
 
 ```powershell
 git -C "D:\claude\Pomodoro timer Android" commit -am "..."
@@ -234,6 +249,13 @@ Three defects were found and fixed in the process:
 - `Row` and `Column` carry the same `DslMarker` as `BoxWithConstraints`, so its
   `maxWidth`/`maxHeight` are invisible inside the nested lambdas; they are copied into
   locals first.
+
+The list above was verified on the **1.0.0** build. **1.1.0** changed only where the
+version number comes from — no app code — and was checked by rebuilding and reading
+the APK back with `aapt2 dump badging` (`versionName='1.1.0' versionCode='10100'`),
+plus a configuration run with `VERSION` deliberately absent to confirm a missing
+file cannot break the build. The 1.1.0 APK has **not** been re-run on an emulator;
+nothing in it should behave differently.
 
 Not verified: **portrait**. MuMu pins its display to landscape and neither `user_rotation`
 nor a `wm size` override moves it, so the tall layout has only been seen rendering in a
