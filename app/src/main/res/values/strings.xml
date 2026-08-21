@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Pomodoro Timer</string>
+
+    <string name="channel_running">Running timer</string>
+    <string name="channel_finished">Finished sessions</string>
+
+    <string name="notif_work">Work session</string>
+    <string name="notif_break">Break</string>
+    <string name="notif_running">Counting down</string>
+
+    <string name="prompt_work_done">Session finished — time for a break.</string>
+    <string name="prompt_break_done">Break\'s over — ready for the next round?</string>
+    <string name="prompt_break_sub">Pick how long you want to focus for.</string>
+
+    <plurals name="sessions_completed">
+        <item quantity="one">You\'ve completed %d session so far.</item>
+        <item quantity="other">You\'ve completed %d sessions so far.</item>
+    </plurals>
+</resources>

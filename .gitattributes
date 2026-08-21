@@ -1,0 +1,4 @@
+# Store and check out every file exactly as it is on disk.
+# Git for Windows sets core.autocrlf=true system-wide; these projects were
+# authored with LF line endings, and conversion would rewrite them on checkout.
+* -text

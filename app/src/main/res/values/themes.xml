@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Compose draws everything, so this only has to give the window a sane
+      starting colour and get the action bar out of the way. The real
+      background is set from the saved theme in MainActivity.onCreate, before
+      the first frame.
+    -->
+    <style name="Theme.PomodoroTimer" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#15171C</item>
+    </style>
+</resources>

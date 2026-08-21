@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Behind the tomato on Android 8+ adaptive icons. Warm off-white, the
+         same shade as the Paper theme, so the red reads cleanly on it. -->
+    <color name="ic_launcher_background">#F4EFE6</color>
+</resources>
