@@ -189,8 +189,9 @@ out byte for byte; Git for Windows is configured `core.autocrlf=true` system-wid
 and would otherwise rewrite these LF files to CRLF.
 
 **Versioning.** `VERSION` holds the current number; every release is tagged
-`v<number>`. The baseline was **1.0.0**; **1.0.1** recorded the move to GitHub
-and **1.0.2** reconciled this document with the files.
+`v<number>`. The baseline was **1.0.0**. This document deliberately does not list
+the releases since — `git tag` and `git log VERSION` are the record, and an
+enumeration here would be one release stale the moment the next one ships.
 
 `VERSION` is the *only* place the version is written. `app\build.gradle.kts`
 reads the file and sets `versionName` from it verbatim, deriving `versionCode`
@@ -216,7 +217,7 @@ Then tag and push both remotes:
 
 ```powershell
 git -C "D:\claude\Pomodoro timer Android" commit -am "..."
-git -C "D:\claude\Pomodoro timer Android" tag -a v1.0.2 -m "..."
+git -C "D:\claude\Pomodoro timer Android" tag -a v$(cat VERSION) -m "..."
 git -C "D:\claude\Pomodoro timer Android" push origin main --tags
 git -C "D:\claude\Pomodoro timer Android" push mirror main --tags
 ```
