@@ -310,7 +310,7 @@ both branches of `Ui.kt` against Android 16's enforced edge-to-edge display.
 | `fastlane/metadata/android/en-US/` listing text, icon and screenshots | **done** (1.1.2) — F-Droid reads the listing from *this* repo, not a web console |
 | GitHub repository made public | **done** (1.1.2) — F-Droid must be able to fetch and build the source |
 | Signed GitHub release, APK attached | **done** (1.1.2) — [v1.1.2](https://github.com/Micheal-Jiaming/Pomodoro-timer-Android/releases/tag/v1.1.2) |
-| IzzyOnDroid inclusion request | outstanding — needs a Codeberg account; text drafted |
+| IzzyOnDroid inclusion request | outstanding — needs a Codeberg account; request text drafted below |
 | F-Droid merge request | outstanding — needs a GitLab account; recipe drafted below |
 
 The listing screenshots are all **landscape**, because MuMu Player cannot be made to render
@@ -330,6 +330,30 @@ Then three releases, escalating, each a prerequisite for the next:
    `gitlab.com/fdroid/fdroiddata` adding `metadata/io.github.michealjiaming.pomodoro.yml`.
    F-Droid builds and signs it themselves, so the release keystore is not involved. Volunteer
    review takes weeks to months.
+
+The step-2 request, ready to file as an issue at
+`codeberg.org/IzzyOnDroid/repodata/issues`. IzzyOnDroid serves the developer's own signed
+APK from GitHub releases rather than building from source, which is why it asks for a
+release URL instead of a build recipe:
+
+> **App inclusion request: Pomodoro Timer**
+>
+> - **Name:** Pomodoro Timer
+> - **Package ID:** `io.github.michealjiaming.pomodoro`
+> - **Source:** https://github.com/Micheal-Jiaming/Pomodoro-timer-Android
+> - **Licence:** Apache-2.0
+> - **Releases:** https://github.com/Micheal-Jiaming/Pomodoro-timer-Android/releases —
+>   signed APK attached to each tagged release, tags in the form `v1.1.2`
+> - **Minimum Android:** 8.0 (API 26)
+>
+> A Pomodoro focus timer. Fully offline: the app declares **no `INTERNET` permission**, so
+> it has no means of network access at all. No advertising, no analytics, no tracking
+> libraries, no Google Play Services and no Firebase — the only dependencies are Kotlin,
+> AndroidX and Compose, all Apache-2.0. Nothing is collected; the theme and session count
+> are stored on the device with `SharedPreferences`.
+>
+> I am the author, the app is not yet listed in the repository, and I believe it meets the
+> inclusion policy. Happy to supply anything further.
 
 The step-3 recipe, drafted and ready to submit as
 `metadata/io.github.michealjiaming.pomodoro.yml`:
