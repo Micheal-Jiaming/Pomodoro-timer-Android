@@ -308,7 +308,10 @@ both branches of `Ui.kt` against Android 16's enforced edge-to-edge display.
 | `LICENSE` file, Apache-2.0, at the repo root | **done** (1.1.2) — `Copyright 2026 Micheal-Jiaming` |
 | Release signing config and keystore | **done** (1.1.2) — 4096-bit RSA, alias `pomodoro`, valid to 2054 |
 | `fastlane/metadata/android/en-US/` listing text, icon and screenshots | **done** (1.1.2) — F-Droid reads the listing from *this* repo, not a web console |
-| GitHub repository made public | outstanding — F-Droid must be able to fetch and build the source |
+| GitHub repository made public | **done** (1.1.2) — F-Droid must be able to fetch and build the source |
+| Signed GitHub release, APK attached | **done** (1.1.2) — [v1.1.2](https://github.com/Micheal-Jiaming/Pomodoro-timer-Android/releases/tag/v1.1.2) |
+| IzzyOnDroid inclusion request | outstanding — needs a Codeberg account; text drafted |
+| F-Droid merge request | outstanding — needs a GitLab account; recipe drafted below |
 
 The listing screenshots are all **landscape**, because MuMu Player cannot be made to render
 this app in portrait (see *Status*). They are accurate and cover all three themes, but
@@ -318,7 +321,8 @@ is a matter of dropping new files into `phoneScreenshots/`.
 Then three releases, escalating, each a prerequisite for the next:
 
 1. **A signed GitHub release** on the existing `v<VERSION>` tag — same day, and immediately
-   installable by anyone.
+   installable by anyone. **Done:** `v1.1.2`, with `PomodoroTimer-1.1.2.apk` attached
+   (6,069,210 bytes, SHA-256 `ebb238b7…cc7fe8`).
 2. **IzzyOnDroid** — a third-party F-Droid repository that serves the author's *own* signed
    APK straight from GitHub releases, so it needs no build on their side. Days, not months.
    Submitted by filing an issue on their Codeberg maintenance repo.
@@ -442,6 +446,24 @@ any earlier build, because the application ID is the identity. It installs along
 older sideloaded APK instead of upgrading it, and starts with empty preferences — no theme,
 no session count. This affects only someone who installed a pre-1.1.2 APK; nothing is
 published.
+
+### The delivery path, verified end to end
+
+This was the actual purpose of releasing 1.1.2, and it was tested the way a stranger would
+experience it rather than by trusting the local build:
+
+1. `PomodoroTimer-1.1.2.apk` was downloaded from the public release URL with `curl` —
+   6,069,210 bytes.
+2. Its SHA-256 was compared against the published digest and matched exactly
+   (`ebb238b7…cc7fe8`), so what GitHub serves is byte-for-byte what was signed here.
+3. The app was **uninstalled** from the device and its absence confirmed, so nothing
+   carried over.
+4. The *downloaded* file — not the local build output — was installed. `Success`.
+5. It launched, reached `topResumedActivity`, rendered correctly at a fresh state (15:00,
+   Black, zero sessions), with an empty crash buffer.
+
+So build, sign, publish, download, verify, install and run are all confirmed to work. That
+is the whole claim this release was meant to establish.
 
 ### Still not verified
 
