@@ -1,4 +1,4 @@
-package com.pomodoro.timer
+package io.github.michealjiaming.pomodoro
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background

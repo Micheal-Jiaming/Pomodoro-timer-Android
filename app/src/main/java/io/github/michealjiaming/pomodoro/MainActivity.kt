@@ -1,4 +1,4 @@
-package com.pomodoro.timer
+package io.github.michealjiaming.pomodoro
 
 import android.Manifest
 import android.content.pm.PackageManager

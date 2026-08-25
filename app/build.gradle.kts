@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -22,12 +24,53 @@ val appVersionCode: Int = appVersionName
         maxOf(major * 10_000 + minor * 100 + patch, 1)
     }
 
+// Release signing credentials, read from local.properties. Neither the keystore
+// nor its passwords are in this repository: the keystore is gitignored and the
+// passwords live in local.properties, which is gitignored too. So anyone else who
+// clones this has none of them — and neither does F-Droid's build server, which
+// compiles from source and signs with its own key. Every value is therefore
+// optional, and when any one is missing the release build is simply left
+// *unsigned* instead of failing. That trade is deliberate: an unsigned APK
+// announces itself the moment you try to install it, whereas a build that refuses
+// to configure looks like the project is broken.
+val signingProps = Properties().apply {
+    val propsFile = rootProject.file("local.properties")
+    if (propsFile.isFile) propsFile.inputStream().use { load(it) }
+}
+
+// Paths here resolve against the app module, so "release.keystore" in
+// local.properties means app/release.keystore. Requiring isFile means a stale or
+// mistyped path behaves exactly like no path at all, rather than failing much
+// later inside the signing task with a less obvious message.
+val releaseKeystore = signingProps.getProperty("RELEASE_STORE_FILE")
+    ?.let { file(it) }
+    ?.takeIf { it.isFile }
+
 android {
-    namespace = "com.pomodoro.timer"
+    namespace = "io.github.michealjiaming.pomodoro"
     compileSdk = 34
 
+    // Declared only when all four pieces are present. The release build type below
+    // looks the config up by name and receives null if it was never created, which
+    // is what produces the unsigned fallback described above.
+    signingConfigs {
+        val storePass = signingProps.getProperty("RELEASE_STORE_PASSWORD")
+        val aliasName = signingProps.getProperty("RELEASE_KEY_ALIAS")
+        val keyPass = signingProps.getProperty("RELEASE_KEY_PASSWORD")
+        if (releaseKeystore != null && storePass != null &&
+            aliasName != null && keyPass != null
+        ) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = storePass
+                keyAlias = aliasName
+                keyPassword = keyPass
+            }
+        }
+    }
+
     defaultConfig {
-        applicationId = "com.pomodoro.timer"
+        applicationId = "io.github.michealjiaming.pomodoro"
         minSdk = 26
         targetSdk = 34
         versionCode = appVersionCode
@@ -36,6 +79,12 @@ android {
 
     buildTypes {
         release {
+            // Null whenever the credentials above were absent, and an APK with no
+            // signing config is emitted unsigned. Android will not install such a
+            // file, which is the intended outcome: better a package that plainly
+            // cannot be installed than one signed with the shared debug key, which
+            // anyone could forge an update against.
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

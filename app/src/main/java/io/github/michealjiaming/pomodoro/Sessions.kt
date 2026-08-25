@@ -1,4 +1,4 @@
-package com.pomodoro.timer
+package io.github.michealjiaming.pomodoro
 
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -6,7 +6,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 
-private const val ACTION_FINISHED = "com.pomodoro.timer.SESSION_FINISHED"
+private const val ACTION_FINISHED = "io.github.michealjiaming.pomodoro.SESSION_FINISHED"
 private const val EXTRA_MODE = "mode"
 private const val EXTRA_DEADLINE = "deadline"
 private const val REQUEST_CODE = 100

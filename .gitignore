@@ -21,3 +21,10 @@ __pycache__/
 .vscode/
 Thumbs.db
 desktop.ini
+
+# Release signing key. The keystore is the app's permanent identity — Android
+# refuses any update signed by a different key — so it must never be published,
+# and must be backed up somewhere outside this repository. Its password lives in
+# local.properties, which is ignored above.
+*.keystore
+*.jks

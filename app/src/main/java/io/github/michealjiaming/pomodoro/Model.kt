@@ -1,4 +1,4 @@
-package com.pomodoro.timer
+package io.github.michealjiaming.pomodoro
 
 /** Work or break, exactly as on the desktop. */
 enum class Mode {

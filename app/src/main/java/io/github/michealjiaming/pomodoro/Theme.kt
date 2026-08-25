@@ -1,4 +1,4 @@
-package com.pomodoro.timer
+package io.github.michealjiaming.pomodoro
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
