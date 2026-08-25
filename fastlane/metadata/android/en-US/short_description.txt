@@ -1,0 +1,1 @@
+A Pomodoro focus timer that works entirely offline. No ads, no tracking.

@@ -9,6 +9,9 @@ Produces, under app/src/main/res/:
   mipmap-*/ic_launcher_fg.png       adaptive foreground (Android 8+)
   mipmap-anydpi-v26/ic_launcher.xml adaptive icon, written by hand alongside
 
+And, for the F-Droid store listing:
+  fastlane/metadata/android/en-US/images/icon.png    512 px listing icon
+
 Needs Pillow:  py -m pip install pillow
 Run with:      py make_launcher_icons.py
 """
@@ -29,6 +32,10 @@ TRACK = (236, 145, 137, 255)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 RES = os.path.join(HERE, "app", "src", "main", "res")
+
+# F-Droid builds its listing page from files kept in the repository rather than
+# from anything uploaded to a web console, so the icon it displays is this path.
+FASTLANE_IMAGES = os.path.join(HERE, "fastlane", "metadata", "android", "en-US", "images")
 
 # Legacy icons are 48dp, adaptive foregrounds 108dp, at each density bucket.
 DENSITIES = {"mdpi": 1, "hdpi": 1.5, "xhdpi": 2, "xxhdpi": 3, "xxxhdpi": 4}
@@ -78,6 +85,23 @@ def save(img, folder, name, size):
     return out
 
 
+def save_listing_icon(img, size=512):
+    """Write the F-Droid listing icon, downsampled from the 1024 px drawing.
+
+    F-Droid asks for a 512 px PNG. Taking it from the same source as the launcher
+    icons, rather than upscaling one of the small mipmap files, is both sharper
+    and the reason the store icon cannot drift away from the one on the phone.
+
+    img is the full-size (1024 px) RGBA drawing; size is the square edge in
+    pixels, 512 being what F-Droid documents. Creates the target directory if it
+    does not exist, and returns the path written.
+    """
+    os.makedirs(FASTLANE_IMAGES, exist_ok=True)
+    out = os.path.join(FASTLANE_IMAGES, "icon.png")
+    img.resize((size, size), Image.LANCZOS).save(out, format="PNG")
+    return out
+
+
 def main():
     tomato = draw_tomato()
 
@@ -99,6 +123,7 @@ def main():
         save(foreground, folder, "ic_launcher_fg.png", int(108 * factor))
         written += 3
     print(f"wrote {written} icons under {RES}")
+    print(f"wrote listing icon {save_listing_icon(tomato)}")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,29 @@
+A Pomodoro timer for focused work: choose how long to work, start it, and take a
+break when it ends.
+
+The countdown is driven by a deadline rather than by counting ticks, so it does
+not drift, and an exact alarm means a finished session announces itself even if
+Android has shut the app down in the meantime. Reopen it and the usual prompt is
+waiting for you.
+
+Features
+
+* Work presets of 15, 30 and 45 minutes; break presets of 5, 10 and 15
+* Any custom length from 1 to 180 minutes
+* A depleting ring showing the time remaining, sized to your screen
+* A completed-session count that survives the app being closed
+* Three themes: Black, Paper and Mist
+* A live countdown in the notification shade
+* An optional "keep screen on" switch
+* A layout that adapts to tall screens and to wide or short ones
+
+Privacy
+
+This app has no internet permission at all. It cannot send anything anywhere,
+because it has no means of opening a network connection. There are no adverts,
+no analytics, no accounts and no tracking of any kind. The only things it
+remembers, your chosen theme and your session count, stay on your device.
+
+Requires Android 8.0 or newer.
+
+This is an early release: complete and usable, with further work planned.

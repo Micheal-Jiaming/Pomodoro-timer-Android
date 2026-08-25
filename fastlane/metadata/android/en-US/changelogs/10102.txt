@@ -1,0 +1,7 @@
+First public release.
+
+The application ID is now io.github.michealjiaming.pomodoro, and the app is
+signed with a proper release key instead of the Android debug key. Published to
+confirm that downloading, installing and running all work as they should.
+
+The timer itself is unchanged.
