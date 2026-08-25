@@ -19,8 +19,15 @@ published: it carries the project's own signing key (see *Rebuilding it*) and is
 having none of the debug tooling bundled in. Do not distribute the debug build — the
 Android debug key is shared and publicly known, so anyone could forge an update against it.
 
-Both report `io.github.michealjiaming.pomodoro`, `versionName` **1.1.2** / `versionCode`
-**10102** (both read from `VERSION` — see *Version control*), Android 8.0 (API 26) and newer.
+Both report `io.github.michealjiaming.pomodoro` and require Android 8.0 (API 26) or newer.
+Their `versionName` and `versionCode` are derived from `VERSION` (see *Version control*), so
+a build made now reports whatever that file currently holds — read the file rather than
+trusting a number written here.
+
+The APK **published** to GitHub is **1.1.2** / `versionCode` **10102**. Every version since
+has changed only this document and the listing images, so no new release was cut for them;
+that is why `VERSION` runs ahead of the published release. To get the exact published
+artefact, download it from the release rather than rebuilding.
 
 The application ID is `io.github.michealjiaming.pomodoro` and **must never change again**:
 an app's ID is its permanent identity on every store, and altering it after publication
@@ -60,7 +67,9 @@ It lands in `app\build\outputs\apk\debug\app-debug.apk`.
 
 The APK in `dist\` was built this way. A self-contained toolchain — JDK 17, the Android
 SDK (platform 34, build-tools 34.0.0, platform-tools), Gradle 8.7, and Gradle's dependency
-cache — lives in `D:\claude\android-build`, along with the three scripts that put it there:
+cache — lives in `D:\claude\android-build`, along with four scripts: `fetch-toolchain.ps1`
+and `setup-toolchain.ps1`, which put it there, and `build-apk.ps1` and
+`build-release.ps1`, which build with it.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File "D:\claude\android-build\build-apk.ps1"
@@ -141,18 +150,31 @@ Two things the Android version does that the desktop one can't:
 ```
 Pomodoro timer Android\
 ├── Pomodoro timer Android.md     this file
+├── LICENSE                       Apache-2.0 — required by F-Droid, see Publishing
 ├── VERSION                       current version number — see Version control
-├── .gitignore                    keeps dist\, build\, .gradle\, local.properties out of git
+├── .gitignore                    keeps dist\, build\, .gradle\, local.properties and
+│                                 *.keystore out of git
 ├── .gitattributes                stores every file byte for byte
-├── dist\
-│   └── PomodoroTimer-debug.apk   the built app, 8.4 MB — not in git, rebuild it
-├── make_launcher_icons.py        redraws the launcher icon (needs Pillow)
+├── dist\                         not in git — rebuild instead
+│   ├── PomodoroTimer-debug.apk   debug build, 8.4 MB
+│   └── PomodoroTimer-1.1.2.apk   the release build published to GitHub, 5.8 MB
+├── fastlane\metadata\android\en-US\   the F-Droid store listing — see Publishing
+│   ├── title.txt                 }
+│   ├── short_description.txt     } listing text, read by F-Droid from this repo
+│   ├── full_description.txt      }
+│   ├── changelogs\10102.txt      one file per versionCode
+│   └── images\
+│       ├── icon.png              512×512, written by make_launcher_icons.py
+│       └── phoneScreenshots\     four portrait 720×1280 captures
+├── make_launcher_icons.py        redraws the launcher icons and the listing icon
 ├── settings.gradle.kts           }
 ├── build.gradle.kts              } Gradle build, versions pinned as a known-good set
 ├── gradle.properties             }
 ├── gradle\wrapper\...properties  Gradle 8.7
 └── app\
-    ├── build.gradle.kts
+    ├── build.gradle.kts          version derivation, signing config, dependencies
+    ├── proguard-rules.pro        named by the release build type
+    ├── release.keystore          NOT in git — the signing key, see Rebuilding it
     └── src\main\
         ├── AndroidManifest.xml
         ├── java\io\github\michealjiaming\pomodoro\
@@ -204,6 +226,12 @@ py make_launcher_icons.py
 ```
 
 Needs Pillow (`py -m pip install pillow`); the app itself doesn't.
+
+That writes both sets of icons from one drawing: the launcher icons into every density
+bucket under `app\src\main\res\mipmap-*\`, and — via `save_listing_icon()` — the 512 px
+`fastlane\metadata\android\en-US\images\icon.png` that F-Droid shows on the listing page.
+Both are downsampled from the same 1024 px render, which is why the store icon cannot drift
+away from the one on the phone.
 
 ## Version control
 
