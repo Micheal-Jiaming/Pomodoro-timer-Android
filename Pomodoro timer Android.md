@@ -127,12 +127,12 @@ Two things the Android version does that the desktop one can't:
 
 - **It keeps time while it isn't running.** Leave the app or lock the phone and an exact
   alarm still fires at the deadline, plays the tone and posts a notification, and the
-  session is still counted; reopen the app and the usual prompt is waiting. This much was
-  observed on a device in 1.1.2. The stronger claim — that it also survives Android killing
-  the process outright — *follows from* the design, because the alarm is held by the system
-  and not by the app, but it has still never actually been seen; see *Status*. A user
-  **force-stopping** the app is a different case again, and a lost cause: Android cancels a
-  force-stopped package's alarms itself, and no app can prevent that.
+  session is still counted; reopen the app and the usual prompt is waiting. Observed in
+  1.1.2, both with the app merely backgrounded and with it **closed** — the alarm still
+  fired and the device vibrated, which is the point: the deadline lives in the system, not
+  in the running app. A user **force-stopping** the app from Android's settings is a
+  different case, and a lost cause: Android cancels a force-stopped package's alarms itself,
+  and no app can prevent that.
 - **The countdown ticks in the notification shade** without anything running in the
   background: the platform's own chronometer does it.
 
@@ -313,10 +313,10 @@ both branches of `Ui.kt` against Android 16's enforced edge-to-edge display.
 | IzzyOnDroid inclusion request | outstanding — needs a Codeberg account; request text drafted below |
 | F-Droid merge request | outstanding — needs a GitLab account; recipe drafted below |
 
-The listing screenshots are all **landscape**, because MuMu Player cannot be made to render
-this app in portrait (see *Status*). They are accurate and cover all three themes, but
-portrait shots taken on a real phone would suit F-Droid's phone slot better; replacing them
-is a matter of dropping new files into `phoneScreenshots/`.
+The listing screenshots are **portrait**, 720×1280 — three themes plus the Custom dialog.
+They were originally landscape, because adb cannot rotate MuMu; they were retaken once the
+emulator was switched to portrait through MuMu's own interface (see *Status*). Replacing
+them again is just a matter of dropping new files into `phoneScreenshots/`.
 
 Then three releases, escalating, each a prerequisite for the next:
 
@@ -489,29 +489,30 @@ experience it rather than by trusting the local build:
 So build, sign, publish, download, verify, install and run are all confirmed to work. That
 is the whole claim this release was meant to establish.
 
+### Closed after release: portrait, and the alarm with the app shut
+
+Two behaviours that had never been observed on *any* build were confirmed after 1.1.2 went
+out, both of which this document had listed as open since 1.0.0.
+
+**Portrait renders correctly.** The trick none of the adb approaches found is that MuMu can
+be switched to portrait through **its own interface** — not through Android. Driven from
+adb it is immovable: `user_rotation 0` (with auto-rotate off) leaves `mRotation=1`, and
+`wm size` overrides of both `720x1280` and `1280x720` are ignored, because MuMu's
+compositor pins the output. Switched in MuMu itself, the emulator reports
+`mRotation=ROTATION_0` and `screencap` returns 720×1280. The tall branch of `Ui.kt` then
+lays out as designed: ring above the controls, everything above the fold, nothing requiring
+a scroll. The listing screenshots were retaken in portrait as a result.
+
+**The alarm fires with the app closed.** Closed using MuMu's own close control, the alarm
+still went off at its deadline and the device vibrated. That is the substance of the claim
+in *What carried over*: the deadline is held by the system, not by the running app, so
+shutting the app does not lose it.
+
 ### Still not verified
 
-**Portrait — and now known to be untestable here, not merely untested.** The app is only
-ever handed a landscape window on MuMu: `dumpsys window` reports
-`mBounds=Rect(0, 0 - 1280, 720)` with `mRotation=ROTATION_90` and a `land` configuration,
-even though the panel is physically 720×1280. Setting `user_rotation 0` (with auto-rotate
-off) left `mRotation=1`; overriding `wm size` to both `720x1280` and `1280x720` changed
-nothing, because MuMu's compositor pins the output. So the tall branch of `Ui.kt` has still
-never rendered. It is the simpler of the two branches and has more room to work with on a
-phone, but it needs a real device or a different emulator. All settings touched during these
-attempts were reset.
-
-**The alarm surviving the process being killed.** Three separate attempts, none conclusive:
-
-- `am force-stop` cancelled the alarm — but that is Android cancelling a force-stopped
-  package's alarms by design, not a defect, and no app can prevent it.
-- `am kill` left the alarm correctly armed, but did not actually kill the process: the
-  ongoing notification keeps the app above the threshold at which `am kill` will act.
-- Killing the process directly by PID needs root, and adb is not root on this MuMu instance.
-
-What *was* shown is that the alarm is held by the system (it appears in `dumpsys alarm`
-independently of the app) and fires from there. Genuine process death remains unobserved.
-The cheapest real test is a phone: start a one-minute session, swipe the app away, lock the
-screen, and wait.
-
-**How the tone actually sounds.** Never listened to; the emulator's audio was not captured.
+- **The 880 Hz tone has still never been heard.** Vibration was felt at the deadline, but
+  MuMu's audio is muted, so the synthesised tone in `Alerts` remains unlistened-to. The
+  alert it belongs to demonstrably fires; only its sound is unconfirmed.
+- **Android's own Force stop** (Settings → Apps → Force stop) is a different case from
+  closing the app, and a hopeless one: Android cancels a force-stopped package's alarms
+  itself, and no app can prevent that. Not a defect, and not worth testing.
