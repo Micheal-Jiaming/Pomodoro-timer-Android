@@ -6,13 +6,28 @@ instead of Python and Tkinter.
 
 ## The APK
 
+Two builds, for two different purposes:
+
 ```
-dist\PomodoroTimer-debug.apk        8.4 MB
+dist\PomodoroTimer-debug.apk                     8.4 MB   debug key
+app\build\outputs\apk\release\app-release.apk    5.8 MB   release key
 ```
 
-Built and signed with the standard Android debug key, which is what emulators accept.
-`com.pomodoro.timer`, `versionName` **1.1.0** / `versionCode` **10100** (both read
-from `VERSION` — see *Version control*), Android 8.0 (API 26) and newer.
+The **debug** build is signed with the standard Android debug key, which is what emulators
+accept, and is the one kept in `dist\`. The **release** build is the one that gets
+published: it carries the project's own signing key (see *Rebuilding it*) and is smaller,
+having none of the debug tooling bundled in. Do not distribute the debug build — the
+Android debug key is shared and publicly known, so anyone could forge an update against it.
+
+Both report `io.github.michealjiaming.pomodoro`, `versionName` **1.1.2** / `versionCode`
+**10102** (both read from `VERSION` — see *Version control*), Android 8.0 (API 26) and newer.
+
+The application ID is `io.github.michealjiaming.pomodoro` and **must never change again**:
+an app's ID is its permanent identity on every store, and altering it after publication
+orphans every existing install. It was renamed from `com.pomodoro.timer` in 1.1.2, while
+nothing was yet published — the old form implied ownership of `pomodoro.com`, whereas
+`io.github.<user>` is the accepted convention for a developer without their own domain and
+is common across F-Droid, which is where this app is headed (see *Publishing*).
 
 To run it:
 
@@ -54,6 +69,29 @@ powershell -ExecutionPolicy Bypass -File "D:\claude\android-build\build-apk.ps1"
 That rebuilds `app\build\outputs\apk\debug\app-debug.apk`; copy it over `dist\` to publish
 it. The full Gradle output goes to `D:\claude\android-build\build.log`.
 
+For the **release** build — the one that gets published — use its sibling:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "D:\claude\android-build\build-release.ps1"
+```
+
+That produces `app\build\outputs\apk\release\app-release.apk` and then prints the signing
+certificate, which is the whole reason it is a separate script: it makes shipping a
+debug-signed APK by accident impossible to do quietly. A correct run reports
+`CN=Micheal-Jiaming`. If the signing credentials are missing it exits non-zero and says so,
+rather than handing over an unsigned file that looks fine until someone tries to install it.
+
+The signing key itself is **not in this repository** and never can be: `app\release.keystore`
+is gitignored, and its passwords live in `local.properties`, which is gitignored too. That
+means a fresh clone builds debug fine but cannot produce a publishable release — which is
+correct, and is also exactly how F-Droid's build server sees it, since F-Droid compiles from
+source and signs with its own key. `app/build.gradle.kts` therefore treats all four signing
+values as optional and falls back to an unsigned release rather than failing to configure.
+
+> The keystore and its password must be backed up **outside** `D:\claude`. Android refuses
+> an update signed by a different key, so losing either one means this app can never be
+> updated again. There is no recovery path.
+
 **The toolchain takes 2.2 GB.** Nothing outside that one folder was touched — no installer
 ran, no `PATH` or registry entry changed, and `JAVA_HOME` is set only inside the build
 script. Delete `D:\claude\android-build` and every trace of it is gone (you'd then need
@@ -87,10 +125,14 @@ app that has no counterpart here. Everything the *timer* does came across.
 
 Two things the Android version does that the desktop one can't:
 
-- **It keeps time while it isn't running.** Leave the app, lock the phone, or let Android
-  kill the process — an exact alarm still fires at the deadline, plays the tone and posts a
-  notification, and the session is still counted. Reopen the app and the usual prompt is
-  waiting.
+- **It keeps time while it isn't running.** Leave the app or lock the phone and an exact
+  alarm still fires at the deadline, plays the tone and posts a notification, and the
+  session is still counted; reopen the app and the usual prompt is waiting. This much was
+  observed on a device in 1.1.2. The stronger claim — that it also survives Android killing
+  the process outright — *follows from* the design, because the alarm is held by the system
+  and not by the app, but it has still never actually been seen; see *Status*. A user
+  **force-stopping** the app is a different case again, and a lost cause: Android cancels a
+  force-stopped package's alarms itself, and no app can prevent that.
 - **The countdown ticks in the notification shade** without anything running in the
   background: the platform's own chronometer does it.
 
@@ -113,7 +155,7 @@ Pomodoro timer Android\
     ├── build.gradle.kts
     └── src\main\
         ├── AndroidManifest.xml
-        ├── java\com\pomodoro\timer\
+        ├── java\io\github\michealjiaming\pomodoro\
         │   ├── MainActivity.kt   window, system bars, keep-screen-on, permissions
         │   ├── TimerViewModel.kt the state machine — the port of PomodoroTimer
         │   ├── Ui.kt             the whole screen, ring included
@@ -222,6 +264,109 @@ git -C "D:\claude\Pomodoro timer Android" push origin main --tags
 git -C "D:\claude\Pomodoro timer Android" push mirror main --tags
 ```
 
+## Publishing
+
+The app is headed for **F-Droid**, and for nothing else. Nothing is published yet.
+
+### Why F-Droid, and not the obvious two
+
+Both mainstream stores were investigated and ruled out:
+
+- **Google Play** requires a personal account created after November 2023 to run a closed
+  test with **12 testers opted in for 14 continuous days** before it may even apply for
+  production access. There is no way around it — public "open testing" only unlocks *after*
+  production access is granted, so it cannot substitute. The owner cannot gather 12 people.
+  Note the gate is per *account*, not per app: clearing it once would open Play permanently,
+  so this is deferred rather than abandoned.
+- **The Apple App Store** bars this app by category. App Review Guideline 4.3(b) names
+  **simple timers** among categories too saturated for new entries, refusing them unless
+  they offer a meaningfully different experience, and reserving the right to remove them
+  later for failing to attract users. Separately, no free path to *any* iOS distribution
+  exists — even the EU alternative marketplaces require the $99/year Apple Developer
+  Program plus notarisation.
+- **Amazon's Appstore** stopped accepting Android submissions on 20 August 2025.
+
+F-Droid costs nothing, needs no developer account, no identity verification and no testers.
+Its one real condition is that the app be open source with no proprietary dependencies, and
+this app already qualifies untouched: Kotlin, AndroidX and Compose are all Apache-2.0, and
+there is no Firebase, no Google Play Services, no analytics and no advertising. Nothing had
+to be removed to become eligible.
+
+**F-Droid imposes no target-API deadline.** The 31 August 2026 API 36 cutoff was Google
+Play's and no longer applies, which is why `compileSdk`/`targetSdk` remain at 34. Upgrading
+is worthwhile quality work but is not a blocker, and is deliberately deferred: it forces
+AGP 8.9+, a newer Gradle than the pinned 8.7, a newer Compose than `compose-bom:2024.06.00`,
+a re-fetch of the platform-34-only toolchain in `D:\claude\android-build`, and re-checking
+both branches of `Ui.kt` against Android 16's enforced edge-to-edge display.
+
+### What still has to happen
+
+| Step | State |
+|---|---|
+| Application ID renamed to a namespace the author controls | **done** (1.1.2) |
+| Security pass — no secrets in history, no `INTERNET`, immutable `PendingIntent`s | **done** (1.1.2) |
+| `LICENSE` file, Apache-2.0, at the repo root | **done** (1.1.2) — `Copyright 2026 Micheal-Jiaming` |
+| Release signing config and keystore | **done** (1.1.2) — 4096-bit RSA, alias `pomodoro`, valid to 2054 |
+| `fastlane/metadata/android/en-US/` listing text, icon and screenshots | **done** (1.1.2) — F-Droid reads the listing from *this* repo, not a web console |
+| GitHub repository made public | outstanding — F-Droid must be able to fetch and build the source |
+
+The listing screenshots are all **landscape**, because MuMu Player cannot be made to render
+this app in portrait (see *Status*). They are accurate and cover all three themes, but
+portrait shots taken on a real phone would suit F-Droid's phone slot better; replacing them
+is a matter of dropping new files into `phoneScreenshots/`.
+
+Then three releases, escalating, each a prerequisite for the next:
+
+1. **A signed GitHub release** on the existing `v<VERSION>` tag — same day, and immediately
+   installable by anyone.
+2. **IzzyOnDroid** — a third-party F-Droid repository that serves the author's *own* signed
+   APK straight from GitHub releases, so it needs no build on their side. Days, not months.
+   Submitted by filing an issue on their Codeberg maintenance repo.
+3. **The official F-Droid repository** — a merge request against
+   `gitlab.com/fdroid/fdroiddata` adding `metadata/io.github.michealjiaming.pomodoro.yml`.
+   F-Droid builds and signs it themselves, so the release keystore is not involved. Volunteer
+   review takes weeks to months.
+
+The step-3 recipe, drafted and ready to submit as
+`metadata/io.github.michealjiaming.pomodoro.yml`:
+
+```yaml
+Categories:
+  - Time
+License: Apache-2.0
+AuthorName: Micheal-Jiaming
+SourceCode: https://github.com/Micheal-Jiaming/Pomodoro-timer-Android
+IssueTracker: https://github.com/Micheal-Jiaming/Pomodoro-timer-Android/issues
+Changelog: https://github.com/Micheal-Jiaming/Pomodoro-timer-Android/releases
+
+RepoType: git
+Repo: https://github.com/Micheal-Jiaming/Pomodoro-timer-Android.git
+
+Builds:
+  - versionName: 1.1.2
+    versionCode: 10102
+    commit: v1.1.2
+    subdir: app
+    gradle:
+      - yes
+
+AutoUpdateMode: Version v%v
+UpdateCheckMode: Tags
+CurrentVersion: 1.1.2
+CurrentVersionCode: 10102
+```
+
+**Two build-recipe frictions to expect at step 3.** The absent Gradle wrapper JAR is fine —
+F-Droid supplies its own Gradle matching the version in `gradle-wrapper.properties`. Less
+certain is that `app/build.gradle.kts` *computes* `versionCode` from `VERSION` rather than
+stating a literal, which is what F-Droid's automatic version detection expects to parse.
+Plan on `UpdateCheckMode: Tags`, which suits the existing tagging convention anyway, and be
+ready to state `versionCode` explicitly in the metadata.
+
+One caveat worth carrying forward: F-Droid's inclusion policy expects apps to be *actively
+maintained* and treats abandonment as grounds for removal. It is far more relaxed about a
+small finished utility than Apple is, but the app should not be treated as fire-and-forget.
+
 ## Status
 
 Built, installed and driven on MuMu Player 12 (Android 12, x86_64, 720×1280 @ 240 dpi).
@@ -251,15 +396,76 @@ Three defects were found and fixed in the process:
   `maxWidth`/`maxHeight` are invisible inside the nested lambdas; they are copied into
   locals first.
 
-The list above was verified on the **1.0.0** build. **1.1.0** changed only where the
-version number comes from — no app code — and was checked by rebuilding and reading
-the APK back with `aapt2 dump badging` (`versionName='1.1.0' versionCode='10100'`),
-plus a configuration run with `VERSION` deliberately absent to confirm a missing
-file cannot break the build. The 1.1.0 APK has **not** been re-run on an emulator;
-nothing in it should behave differently.
+The list above was verified on the **1.0.0** build. Three releases since have changed no
+app behaviour:
 
-Not verified: **portrait**. MuMu pins its display to landscape and neither `user_rotation`
-nor a `wm size` override moves it, so the tall layout has only been seen rendering in a
-window too short for it. It is the simpler of the two branches and has more room to work
-with on a phone, but it has not been looked at on a genuinely tall screen. Also unverified:
-the alarm firing after the process is killed, and how the tone actually sounds.
+- **1.1.0** made `VERSION` the single source of the version number. Checked by rebuilding
+  and reading the APK back with `aapt2 dump badging` (`versionName='1.1.0'
+  versionCode='10100'`), plus a configuration run with `VERSION` deliberately absent to
+  confirm a missing file cannot break the build.
+- **1.1.1** was a documentation reconciliation only — no code, no build. It nevertheless
+  left the version line under *The APK* reading 1.1.0, which 1.1.2 corrected.
+- **1.1.2** renamed the application ID (see *The APK*). That rewrote the `package`
+  declaration of all nine Kotlin files, moved them to a new directory, changed the internal
+  intent action string, and edited `namespace`/`applicationId`. Verified by rebuilding
+  (Gradle exit 0) and reading the APK back: `package:
+  name='io.github.michealjiaming.pomodoro'`, `versionCode='10102'`, `versionName='1.1.2'`,
+  and `launchable-activity` resolving under the new package. The permission set is
+  unchanged — the four declared permissions, plus the signature-only
+  `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` that AndroidX generates for its own use, which
+  renamed along with the package and so confirms the rename propagated everywhere. A
+  `/security-audit` pass over the whole tree found nothing.
+
+**1.1.2 was re-run on the device**, as the *release* build rather than the debug one — the
+first time any build since 1.0.0 has been exercised on a device, and the first time a
+release-signed build has been run at all. On MuMu Player 12 (SM-S9280, Android 12,
+`android_id 603f5f9651375de3`), installed with `adb install -r` from
+`app-release.apk`:
+
+- installed and launched, with `MainActivity` reaching `topResumedActivity`
+- the device reports `versionCode=10102 versionName=1.1.2 minSdk=26 targetSdk=34`
+- all three themes cycle and render with their own palettes
+- the **Custom** dialog opens over the Black theme with light-on-dark text (the
+  `MaterialTheme.colorScheme` fix in `Theme.kt` still holds), validates, and accepts 1
+- the ongoing notification posts on the `running` channel with `flags=0x2`
+  (`FLAG_ONGOING_EVENT`), importance 2, title *Work session*
+- an `RTC_WAKEUP` exact alarm is registered with the system on Start
+- the alarm **fired** at its deadline and was consumed, the session counter incremented to
+  1, and the end-of-session prompt was waiting on reopen with the documented wording, green
+  break buttons and red work buttons
+- both notification channels exist: `running` (*Running timer*) and `finished`
+  (*Finished sessions*)
+- zero entries in the crash buffer across the whole run
+
+One consequence of the rename worth knowing: Android treats 1.1.2 as a *different app* from
+any earlier build, because the application ID is the identity. It installs alongside an
+older sideloaded APK instead of upgrading it, and starts with empty preferences — no theme,
+no session count. This affects only someone who installed a pre-1.1.2 APK; nothing is
+published.
+
+### Still not verified
+
+**Portrait — and now known to be untestable here, not merely untested.** The app is only
+ever handed a landscape window on MuMu: `dumpsys window` reports
+`mBounds=Rect(0, 0 - 1280, 720)` with `mRotation=ROTATION_90` and a `land` configuration,
+even though the panel is physically 720×1280. Setting `user_rotation 0` (with auto-rotate
+off) left `mRotation=1`; overriding `wm size` to both `720x1280` and `1280x720` changed
+nothing, because MuMu's compositor pins the output. So the tall branch of `Ui.kt` has still
+never rendered. It is the simpler of the two branches and has more room to work with on a
+phone, but it needs a real device or a different emulator. All settings touched during these
+attempts were reset.
+
+**The alarm surviving the process being killed.** Three separate attempts, none conclusive:
+
+- `am force-stop` cancelled the alarm — but that is Android cancelling a force-stopped
+  package's alarms by design, not a defect, and no app can prevent it.
+- `am kill` left the alarm correctly armed, but did not actually kill the process: the
+  ongoing notification keeps the app above the threshold at which `am kill` will act.
+- Killing the process directly by PID needs root, and adb is not root on this MuMu instance.
+
+What *was* shown is that the alarm is held by the system (it appears in `dumpsys alarm`
+independently of the app) and fires from there. Genuine process death remains unobserved.
+The cheapest real test is a phone: start a one-minute session, swipe the app away, lock the
+screen, and wait.
+
+**How the tone actually sounds.** Never listened to; the emulator's audio was not captured.
