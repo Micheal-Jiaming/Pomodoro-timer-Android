@@ -383,6 +383,52 @@ git -C "D:\claude\Pomodoro timer Android" push mirror --tags
 
 The app is headed for **F-Droid**, and for nothing else. Nothing is published yet.
 
+### The self-hosted F-Droid repository — the route that actually works
+
+**Read this before spending time on IzzyOnDroid.** IzzyOnDroid's inclusion form has a
+*required* "AI Assistance Level" dropdown, and their App Inclusion AI Policy declines apps
+where LLM involvement reaches the core logic and architecture rather than scaffolding. The one
+closed request in their tracker — issue #446, `[AppRequest] PureHub`, an offline no-tracker
+utility app much like this one — declared "Dominant" and was declined on exactly those
+grounds, labelled `llm` / `substantial` / `declined`. This app is in the same category: the
+Kotlin was written with Claude throughout. An honest declaration is therefore very likely to
+be declined, and a dishonest one is not an option.
+
+So the app is published from **its own F-Droid repository** instead, which has no gatekeeper.
+Users add one URL to the F-Droid client and the app appears there like any other.
+
+**Repository URL** (the fingerprint is part of it — the client verifies the signed index
+against it, so the URL is useless without it):
+
+```
+https://micheal-jiaming.github.io/Pomodoro-timer-Android/fdroid/repo?fingerprint=8403BEEFFFB9AD148C5E428FC951D84E48DA9DE7ACB6DB3E5C1DE6158DD69DAC
+```
+
+Served by **GitHub Pages** from `docs/` on `main`, which is why `docs/fdroid/repo/` is
+committed — Pages can only serve what is in git. That includes the APK, which is a deliberate
+exception to the no-binaries rule for the same reason as the Gradle wrapper: the repository
+does not work without it.
+
+**The tooling lives outside this repository**, at `D:\claude\fdroid-repo`, and must stay
+there: its `config.yml` holds the repo signing password in clear text and `keystore.p12` is
+the repo signing key. Neither is in git and neither can be. Losing them means the repository
+can no longer be updated — users would have to remove and re-add it under a new fingerprint —
+but unlike the *app* signing key, it does not orphan installs.
+
+To publish a new version:
+
+```powershell
+copy "dist\PomodoroTimer-<ver>.apk" "D:\claude\fdroid-repo\repo\io.github.michealjiaming.pomodoro_<code>.apk"
+cd D:\claude\fdroid-repo
+fdroid update
+```
+
+Then copy `D:\claude\fdroid-repo\repo\` over `docs\fdroid\repo\`, delete the `status\` folder
+it regenerates (it contains local machine paths and is not needed by clients), commit and
+push. `fdroidserver` is installed via `py -m pip install fdroidserver`; on Windows it needs
+`apksigner` spelled out in `config.yml`, because it looks for a file named `apksigner` and
+the Windows SDK only ships `apksigner.bat`.
+
 ### Why F-Droid, and not the obvious two
 
 Both mainstream stores were investigated and ruled out:
