@@ -531,8 +531,9 @@ Three defects were found and fixed in the process:
   `maxWidth`/`maxHeight` are invisible inside the nested lambdas; they are copied into
   locals first.
 
-The list above was verified on the **1.0.0** build. Three releases since have changed no
-app behaviour:
+The list above was verified on the **1.0.0** build. Of the releases since, only **1.1.8**
+changed app behaviour — its own verification is recorded at the end of this section. The
+rest were build, packaging or documentation work:
 
 - **1.1.0** made `VERSION` the single source of the version number. Checked by rebuilding
   and reading the APK back with `aapt2 dump badging` (`versionName='1.1.0'
@@ -615,16 +616,52 @@ still went off at its deadline and the device vibrated. That is the substance of
 in *What carried over*: the deadline is held by the system, not by the running app, so
 shutting the app does not lose it.
 
+### 1.1.8 — the alarm-cancel fix, verified on the device
+
+Run against the **release** build of 1.1.8 (`versionCode=10108`, signed `CN=Micheal-Jiaming`)
+on a cleared install, so the session counter started from a known zero. Four checks, in this
+order:
+
+1. **Reset while a countdown is armed** — the path the fix changed, since Reset is what calls
+   `AlarmScheduler.cancel()`. `dumpsys alarm` showed one armed `RTC_WAKEUP` for
+   `SESSION_FINISHED` before, and none after; Android's own record read
+   `reason=alarm_cancelled`. The UI returned to a full ring and `PAUSED`, the counter stayed
+   at 0, and the crash buffer stayed empty.
+2. **Ordinary completion, app open** — a 1-minute custom session ran to its deadline. The
+   prompt appeared and read *"You've completed 1 session so far"*: **exactly one**, which is
+   the property the fix exists to protect. The alarm was consumed.
+3. **Re-arming after a completion** — this is the regression the fix could itself have
+   caused, because `cancel()` now retires the `PendingIntent` with `pending.cancel()`. A
+   second session armed a fresh alarm without trouble, so retiring it does not prevent later
+   scheduling.
+4. **Completion with the app killed** — the app was swiped off recents with an alarm armed;
+   its pid went from 4227 to nothing, so the process was genuinely gone, and the alarm stayed
+   armed. At the deadline Android recreated the process from scratch (new pid 6938) purely to
+   deliver the broadcast, and the notification posted on the `finished` channel reading
+   *"You've completed 2 sessions so far"* — **exactly two after two sessions, not three.**
+   That last point is the direct evidence there is no double count.
+
+Check 4 also exercises what `FinishReceiver.onReceive` documents: it can run in a process
+built from nothing to handle the broadcast, which is why it calls `ensureChannels()` rather
+than assuming the activity has ever run.
+
+What this does **not** prove: the race itself. The bug needed a cancel to collide with an
+already-dispatched broadcast, which cannot be provoked by hand. What is established is that
+the two guards are in place and that ordinary completion, cancellation and re-arming all
+still work — the duplicate path is closed by construction rather than by observation.
+
+A leftover worth knowing for future testing: the emulator still has the **pre-rename
+package** `com.pomodoro.timer` installed alongside the current one, so two Pomodoro apps
+appear in the launcher. Uninstall it before any test where picking the wrong icon would
+mislead.
+
 ### Still not verified
 
-- **The 1.1.8 alarm-cancel fix has not been run on a device.** It compiles and the release
-  APK builds, but MuMu was not running when the change was made, so the end-of-session path
-  has not been exercised since. What needs re-testing: a session completing with the app
-  open, a session completing with the app closed, and Reset while a countdown is armed —
-  the last one is the path that changed, since Reset is what calls
-  `AlarmScheduler.cancel()`. The bug being fixed was a *duplicate* completion under a race,
-  which is hard to trigger deliberately; the realistic check is that ordinary completion
-  and cancellation still work at all, rather than that the race is gone.
+- **The double-count race itself has never been reproduced.** The 1.1.8 fix is verified in
+  the sense that both guards are present and that completion, cancellation and re-arming all
+  work (see above), but the collision it prevents — a cancel landing on an
+  already-dispatched broadcast — cannot be provoked by hand. The path is closed by
+  construction, not by having been observed to fail and then not fail.
 - **The 880 Hz tone has still never been heard.** Vibration was felt at the deadline, but
   MuMu's audio is muted, so the synthesised tone in `Alerts` remains unlistened-to. The
   alert it belongs to demonstrably fires; only its sound is unconfirmed.
