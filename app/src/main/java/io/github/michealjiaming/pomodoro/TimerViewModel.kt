@@ -58,9 +58,13 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
                 if (state.running) tick()
                 // Polling idles at a slower rate rather than stopping. It still has
                 // to wake up while paused, because `running` can be turned on by a
-                // button press or by restore(), and the loop is what notices. IDLE_MS
-                // is the compromise: slow enough to be negligible, fast enough that
+                // button press, and the loop is what notices. IDLE_MS is the
+                // compromise: slow enough to be negligible, fast enough that
                 // pressing Start feels immediate.
+                //
+                // restore() is deliberately not on that list. It runs from init,
+                // above, before this coroutine is launched, so the first iteration
+                // already sees whatever it set - no idle wake-up is involved.
                 delay(if (state.running) TICK_MS else IDLE_MS)
             }
         }

@@ -41,10 +41,16 @@ class MainActivity : ComponentActivity() {
 
     private val requestNotifications =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-            // Deliberately empty. Declining only costs the notification when a
-            // session ends off-screen; the timer, the alarm and the in-app prompt
-            // all still work, so there is nothing to recover from and nothing worth
-            // nagging the user about.
+            // Deliberately empty. Be clear about the cost, because it is larger
+            // than it looks: declining suppresses every notification this app
+            // posts, which means both the ongoing countdown in the shade
+            // (Alerts.showRunning, posted on start and on restore) and the notice
+            // when a session ends off-screen. The app loses its whole presence in
+            // the shade for the session, not just the finished-session alert.
+            //
+            // Everything outside the shade still works - the timer, the scheduled
+            // alarm and its sound, and the in-app finished prompt - so there is
+            // nothing to recover from here and nothing worth nagging about.
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
