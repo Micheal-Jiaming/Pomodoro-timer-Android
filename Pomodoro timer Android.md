@@ -55,13 +55,29 @@ is going somewhere other than your own emulator.
 2. **File → Open** and pick this folder (`D:\claude\Pomodoro timer Android`).
 3. Wait for the first Gradle sync. It downloads Gradle 8.7 and the Android build tools, so
    the first one takes a few minutes; later ones are quick.
-   - The Gradle wrapper JAR is not in this folder (it's a binary that has to come from a
-     Gradle release). Android Studio recreates it during the first sync. If it asks, let it
-     use the Gradle wrapper at the version in `gradle/wrapper/gradle-wrapper.properties`.
+   - The Gradle wrapper is committed, so Studio has nothing to recreate; it uses the
+     version pinned in `gradle/wrapper/gradle-wrapper.properties`.
 4. Start your emulator, then press **Run ▶**. Studio installs and launches the app.
 
 To get an APK you can install anywhere: **Build → Build Bundle(s) / APK(s) → Build APK(s)**.
 It lands in `app\build\outputs\apk\debug\app-debug.apk`.
+
+### From the command line, on any machine
+
+The Gradle wrapper is committed, so a fresh clone needs only JDK 17 and an Android SDK with
+API 34 — the wrapper fetches Gradle itself on first run:
+
+```bash
+./gradlew assembleDebug          # gradlew.bat on Windows
+```
+
+Point `ANDROID_HOME` at your SDK, or set `sdk.dir` in `local.properties`. This is the route
+a reviewer or a contributor will take, and the reason the wrapper is in git at all: before
+it was added, cloning this repository gave you something you could not build.
+
+Verified on 26 Aug 2026 — `gradlew.bat assembleRelease` produced a 6,069,210-byte APK
+signed `CN=Micheal-Jiaming`, the same size and the same certificate as the script route
+below produces.
 
 ### From the command line, with the toolchain already here
 
@@ -149,7 +165,8 @@ Two things the Android version does that the desktop one can't:
 
 ```
 Pomodoro timer Android\
-├── Pomodoro timer Android.md     this file
+├── Pomodoro timer Android.md     this file — the authoritative one
+├── README.md                     the public GitHub landing page, see Layout note
 ├── LICENSE                       Apache-2.0 — required by F-Droid, see Publishing
 ├── VERSION                       current version number — see Version control
 ├── .gitignore                    keeps dist\, build\, .gradle\, local.properties and
@@ -170,7 +187,11 @@ Pomodoro timer Android\
 ├── settings.gradle.kts           }
 ├── build.gradle.kts              } Gradle build, versions pinned as a known-good set
 ├── gradle.properties             }
-├── gradle\wrapper\...properties  Gradle 8.7
+├── gradlew                       }
+├── gradlew.bat                   } Gradle wrapper — a fresh clone builds with no
+├── gradle\wrapper\               }  preinstalled Gradle; see Rebuilding it
+│   ├── gradle-wrapper.jar        }
+│   └── gradle-wrapper.properties pins Gradle 8.7
 └── app\
     ├── build.gradle.kts          version derivation, signing config, dependencies
     ├── proguard-rules.pro        named by the release build type
@@ -189,6 +210,13 @@ Pomodoro timer Android\
         │   └── Sessions.kt       exact alarm, and the one path that ends a session
         └── res\                  strings, icons, theme
 ```
+
+**Two Markdown files, deliberately.** The workspace convention is one document per project,
+and this file is that document — the authoritative one. `README.md` exists only because the
+repository is public and GitHub renders it as the landing page. It is kept deliberately thin:
+a shop window plus a pointer back here, rather than a second copy of the facts, so that the
+two cannot drift apart. It quotes no version numbers, file sizes or hashes for the same
+reason. Do not merge it into this file and do not delete it as a duplicate.
 
 ## Implementation notes
 
@@ -239,7 +267,7 @@ This project is its own Git repository, with two remotes:
 
 | Remote | Points at |
 |---|---|
-| `origin` | `https://github.com/Micheal-Jiaming/Pomodoro-timer-Android` — private |
+| `origin` | `https://github.com/Micheal-Jiaming/Pomodoro-timer-Android` — **public** |
 | `mirror` | `D:\claude\repos\Pomodoro timer Android.git` — local bare copy |
 
 GitHub disallows spaces in repository names, hence `Pomodoro-timer-Android`.
@@ -249,12 +277,15 @@ independently. Authentication is the GitHub CLI acting as git's credential
 helper (`gh auth setup-git`), so pushes need no interactive prompt.
 
 Tracked: the Gradle build files, everything under `app\src\`, the launcher-icon
-PNGs, `make_launcher_icons.py`, `gradle\wrapper\gradle-wrapper.properties`, and
-this document. Ignored: `dist\`, `build\` (which covers `app\build\`),
-`.gradle\`, `local.properties` — the APK is rebuilt from source as described
-above, an old debug APK cannot do what newer source does, and `local.properties`
-is machine-specific. The Gradle wrapper JAR is absent by design; Android Studio
-recreates it. `.gitattributes` sets `* -text` so every file is stored and checked
+PNGs, `make_launcher_icons.py`, the whole Gradle wrapper (`gradlew`, `gradlew.bat`
+and `gradle\wrapper\`), `LICENSE`, `README.md`, the `fastlane\` store listing, and
+this document. Ignored: `dist\`, `build\` (which covers `app\build\`), `.gradle\`,
+`local.properties`, and `*.keystore`/`*.jks` — the APK is rebuilt from source as
+described above, an old debug APK cannot do what newer source does,
+`local.properties` is machine-specific, and the keystore is a private credential.
+The wrapper JAR is tracked even though it is a binary: it is a bootstrap that
+source needs in order to build, not a build output, and without it a clone cannot
+be built at all. `.gitattributes` sets `* -text` so every file is stored and checked
 out byte for byte; Git for Windows is configured `core.autocrlf=true` system-wide
 and would otherwise rewrite these LF files to CRLF.
 
@@ -262,6 +293,14 @@ and would otherwise rewrite these LF files to CRLF.
 `v<number>`. The baseline was **1.0.0**. This document deliberately does not list
 the releases since — `git tag` and `git log VERSION` are the record, and an
 enumeration here would be one release stale the moment the next one ships.
+
+**A `v*` tag means "an APK was published" — from 1.1.7 onward.** It did not always:
+`v1.1.3` through `v1.1.6` are version bumps for documentation and tooling that never
+produced a release, and `v1.1.2` is the only tag of that run with an APK behind it. That
+ambiguity had a real cost — an F-Droid recipe following tags would have picked `v1.1.6` and
+shipped a build nobody had ever run. So the rule from 1.1.7 on: bump `VERSION` for every
+change, but create a `v*` tag only when that version actually publishes an APK. 1.1.7 itself
+is the first to follow it, and is deliberately untagged.
 
 `VERSION` is the *only* place the version is written. `app\build.gradle.kts`
 reads the file and sets `versionName` from it verbatim, deriving `versionCode`
@@ -283,13 +322,20 @@ changes are never exempt: this file is what a later session works from, so a
 wrong line in it is a defect like any other. The rule is deliberately mechanical,
 because a rule needing judgement gets applied differently by every session.
 
-Then tag and push both remotes:
+Then push both remotes:
 
 ```powershell
 git -C "D:\claude\Pomodoro timer Android" commit -am "..."
+git -C "D:\claude\Pomodoro timer Android" push origin main
+git -C "D:\claude\Pomodoro timer Android" push mirror main
+```
+
+Tag **only if this version publishes an APK** — see the tag rule above. When it does:
+
+```powershell
 git -C "D:\claude\Pomodoro timer Android" tag -a v$(cat VERSION) -m "..."
-git -C "D:\claude\Pomodoro timer Android" push origin main --tags
-git -C "D:\claude\Pomodoro timer Android" push mirror main --tags
+git -C "D:\claude\Pomodoro timer Android" push origin --tags
+git -C "D:\claude\Pomodoro timer Android" push mirror --tags
 ```
 
 ## Publishing
@@ -338,6 +384,8 @@ both branches of `Ui.kt` against Android 16's enforced edge-to-edge display.
 | `fastlane/metadata/android/en-US/` listing text, icon and screenshots | **done** (1.1.2) — F-Droid reads the listing from *this* repo, not a web console |
 | GitHub repository made public | **done** (1.1.2) — F-Droid must be able to fetch and build the source |
 | Signed GitHub release, APK attached | **done** (1.1.2) — [v1.1.2](https://github.com/Micheal-Jiaming/Pomodoro-timer-Android/releases/tag/v1.1.2) |
+| Gradle wrapper committed, so a fresh clone can be built | **done** (1.1.7) — verified by building the release APK through `gradlew` itself |
+| `README.md` landing page for the public repository | **done** (1.1.7) — deliberately thin; see the note under *Layout* |
 | IzzyOnDroid inclusion request | outstanding — needs a Codeberg account; request text drafted below |
 | F-Droid merge request | outstanding — needs a GitLab account; recipe drafted below |
 
@@ -406,18 +454,35 @@ Builds:
     gradle:
       - yes
 
-AutoUpdateMode: Version v%v
-UpdateCheckMode: Tags
+AutoUpdateMode: None
+UpdateCheckMode: None
 CurrentVersion: 1.1.2
 CurrentVersionCode: 10102
 ```
 
-**Two build-recipe frictions to expect at step 3.** The absent Gradle wrapper JAR is fine —
-F-Droid supplies its own Gradle matching the version in `gradle-wrapper.properties`. Less
-certain is that `app/build.gradle.kts` *computes* `versionCode` from `VERSION` rather than
-stating a literal, which is what F-Droid's automatic version detection expects to parse.
-Plan on `UpdateCheckMode: Tags`, which suits the existing tagging convention anyway, and be
-ready to state `versionCode` explicitly in the metadata.
+**Why auto-update is switched off in that recipe.** `UpdateCheckMode: Tags` would make
+F-Droid follow the newest *git tag*, and a tag in this repository does not mean "release":
+`v1.1.3` through `v1.1.6` are documentation bumps that were never built into an APK or
+installed anywhere. F-Droid would take the newest of them, read `versionCode` 10106 out of
+it, and publish a version nobody has ever run — and the listing would show no changelog
+either, because `fastlane/.../changelogs/` contains only `10102.txt`. With both modes set to
+`None`, F-Droid builds exactly the pinned commit and nothing else.
+
+That also dissolves the `versionCode` friction this section used to warn about.
+`app/build.gradle.kts` *computes* `versionCode` arithmetically from `VERSION` rather than
+stating a literal, which is what F-Droid's automatic version detection expects to parse —
+but nothing needs to parse it while auto-update is off, because the metadata states the
+value outright. Keep the computed version: a single source of truth is the right design
+here, and the whole cost is one metadata edit per release.
+
+`UpdateCheckMode: Tags` becomes safe again as soon as the newest `v*` tag is a real release,
+which the tag rule adopted in 1.1.7 now guarantees (see *Version control*). The 1.2.0 feature
+release is the natural moment to switch it back on.
+
+The Gradle wrapper is no longer a concern: `gradlew`, `gradlew.bat` and
+`gradle/wrapper/gradle-wrapper.jar` are now committed, so a fresh clone builds without any
+preinstalled Gradle. F-Droid discards a checked-in wrapper JAR and substitutes its own
+Gradle regardless, which is why this was never a blocker for them — only for humans.
 
 One caveat worth carrying forward: F-Droid's inclusion policy expects apps to be *actively
 maintained* and treats abandonment as grounds for removal. It is far more relaxed about a
