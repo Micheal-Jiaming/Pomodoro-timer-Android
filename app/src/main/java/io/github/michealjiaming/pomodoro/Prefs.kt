@@ -14,10 +14,20 @@ class Prefs(context: Context) {
     private val sp = context.applicationContext
         .getSharedPreferences("pomodoro", Context.MODE_PRIVATE)
 
+    // Every property below reads and writes straight through to disk rather than
+    // caching, so two Prefs instances — the activity's and the alarm receiver's,
+    // which may be in a freshly created process — cannot disagree. `apply()` writes
+    // asynchronously, which is what keeps these setters cheap enough to call from
+    // the UI thread.
+
+    // Defaults to the first palette, Black. The elvis is not redundant: getString
+    // is declared as returning a nullable String even when given a non-null default.
     var theme: String
         get() = sp.getString(KEY_THEME, PALETTES[0].key) ?: PALETTES[0].key
         set(value) = sp.edit().putString(KEY_THEME, value).apply()
 
+    // Defaults to true — on a first run, a countdown you can watch is more useful
+    // than a screen that times out mid-session.
     var keepScreenOn: Boolean
         get() = sp.getBoolean(KEY_KEEP_SCREEN_ON, true)
         set(value) = sp.edit().putBoolean(KEY_KEEP_SCREEN_ON, value).apply()
@@ -54,6 +64,23 @@ class Prefs(context: Context) {
         get() = sp.getLong(KEY_LAST_COMPLETED, 0L)
         set(value) = sp.edit().putLong(KEY_LAST_COMPLETED, value).apply()
 
+    /**
+     * Mark that no countdown is in flight, by zeroing the deadline.
+     *
+     * Only the deadline is cleared, and the name therefore promises more than the
+     * body delivers — this note is the reconciliation.
+     *
+     * pendingMode and pendingTotalSeconds are left holding the finished session's
+     * values on purpose, because one of them is still needed afterwards:
+     * `restore()`, when it finds no deadline but a `finishedMode`, reads
+     * pendingTotalSeconds to show how long the session that just ended was. Clearing
+     * it here would leave the end-of-session prompt with the wrong length.
+     *
+     * pendingMode is not read on that path — finishedMode supplies the mode — so it
+     * is simply harmless to leave. The deadline is the only value whose staleness
+     * would matter, since a non-zero deadline is precisely what makes `restore()`
+     * believe a countdown is still in flight.
+     */
     fun clearPending() {
         sp.edit().putLong(KEY_PENDING_DEADLINE, 0L).apply()
     }

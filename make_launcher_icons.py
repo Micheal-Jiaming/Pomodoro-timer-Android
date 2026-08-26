@@ -42,21 +42,38 @@ DENSITIES = {"mdpi": 1, "hdpi": 1.5, "xhdpi": 2, "xxhdpi": 3, "xxxhdpi": 4}
 
 
 def draw_tomato():
-    """The tomato, drawn on a transparent 1024 px square."""
+    """The tomato, drawn on a transparent 1024 px square.
+
+    Everything is drawn at this one large size and downsampled afterwards, which is
+    why the coordinates below are absolute rather than proportional: drawing once at
+    1024 px and shrinking gives smoother edges than drawing each small size directly.
+
+    Returns the RGBA image. Nothing is written to disk here.
+    """
     img = Image.new("RGBA", (S, S), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
 
-    body = (70, 215, 954, 1000)          # wider than tall, which reads as tomato
+    # Wider than tall, which is what reads as a tomato rather than an apple. Inset
+    # from the 1024 edges so the shape is not clipped, and pushed down (top at 215)
+    # to leave room for the stalk above it.
+    body = (70, 215, 954, 1000)
     cx = (body[0] + body[2]) / 2
     cy = (body[1] + body[3]) / 2
     d.ellipse(body, fill=RED)
 
-    base = (512, 250)                    # calyx: five leaves from the top
+    # The calyx: five leaves radiating from a point just inside the top of the body.
+    base = (512, 250)
+    # Each pair is (angle in degrees, length in pixels). Angles are measured with 0
+    # pointing right and -90 straight up, so this fans from left (-176) to right (-4).
+    # The two diagonals are longest (250) and the outermost pair shortest (205),
+    # which is what stops the star looking mechanical.
     for angle, length in [(-176, 205), (-142, 250), (-90, 215), (-38, 250), (-4, 205)]:
         a = math.radians(angle)
         tip = (base[0] + length * math.cos(a), base[1] + length * math.sin(a))
+        # A unit vector perpendicular to the leaf direction, used to spread the two
+        # base corners either side of `base` and so give each leaf its width.
         px, py = -math.sin(a), math.cos(a)
-        half = 62
+        half = 62                        # half-width of a leaf at its base, in pixels
         d.polygon(
             [
                 (base[0] + half * px, base[1] + half * py),
@@ -65,19 +82,38 @@ def draw_tomato():
             ],
             fill=GREEN,
         )
+    # A circle over the middle of the calyx, hiding the seam where all five leaf
+    # polygons meet at `base`.
     d.ellipse((base[0] - 70, base[1] - 70, base[0] + 70, base[1] + 70), fill=GREEN)
 
+    # The stalk, drawn as a thick vertical line with a round cap on top. Deeper green
+    # than the leaves so it reads as in front of them.
     d.line([(512, 255), (512, 110)], fill=GREEN_DEEP, width=76)
     d.ellipse((474, 74, 550, 150), fill=GREEN_DEEP)
 
-    r, width = 252, 86                   # the countdown ring inside the body
+    # The countdown ring, echoing the one in the app. Radius 252 and thickness 86 put
+    # it comfortably inside the body with red visible on either side.
+    r, width = 252, 86
     ring = (cx - r, cy - r, cx + r, cy + r)
+    # Two arcs making one circle, split at 160 degrees so the icon shows a session
+    # partly elapsed rather than a full or empty ring. -90 is twelve o'clock, matching
+    # where the app's ring starts. White is the remaining time, TRACK the spent part.
     d.arc(ring, start=-90, end=160, fill=WHITE, width=width)
     d.arc(ring, start=160, end=270, fill=TRACK, width=width)
     return img
 
 
 def save(img, folder, name, size):
+    """Write one launcher icon, downsampled to `size` pixels square.
+
+    img is the full-size (1024 px) drawing; folder is a directory name under res/
+    such as "mipmap-hdpi"; name is the file name, e.g. "ic_launcher.png"; size is
+    the square edge in pixels.
+
+    LANCZOS is specified rather than left to default because the default filter
+    visibly softens the ring's edges at the smaller densities. Creates the target
+    directory if needed, overwrites any existing file, and returns the path written.
+    """
     path = os.path.join(RES, folder)
     os.makedirs(path, exist_ok=True)
     out = os.path.join(path, name)
@@ -103,10 +139,19 @@ def save_listing_icon(img, size=512):
 
 
 def main():
+    """Draw the tomato once, then write every size Android and F-Droid need.
+
+    Overwrites 15 launcher PNGs under res/mipmap-* plus the 512 px listing icon —
+    it does not ask first, because every one of them is reproducible from this
+    script. The adaptive icon's XML (mipmap-anydpi-v26/ic_launcher.xml) is written by
+    hand and is NOT touched here.
+    """
     tomato = draw_tomato()
 
-    # Adaptive icons are masked to the middle ~66%, so the tomato is inset into
-    # a transparent 108dp square rather than filling it.
+    # Adaptive icons let the launcher apply its own mask, and the guaranteed-visible
+    # region is only the middle ~66% of the square. The tomato is scaled to 62% and
+    # centred, a little inside that guarantee: the extra margin is deliberate, so an
+    # aggressive circular mask cannot shave the calyx or the ring.
     foreground = Image.new("RGBA", (S, S), (0, 0, 0, 0))
     inner = int(S * 0.62)
     foreground.paste(

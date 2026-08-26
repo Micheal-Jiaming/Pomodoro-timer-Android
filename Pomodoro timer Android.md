@@ -174,12 +174,13 @@ Pomodoro timer Android\
 ├── .gitattributes                stores every file byte for byte
 ├── dist\                         not in git — rebuild instead
 │   ├── PomodoroTimer-debug.apk   debug build, 8.4 MB
-│   └── PomodoroTimer-1.1.2.apk   the release build published to GitHub, 5.8 MB
+│   ├── PomodoroTimer-1.1.2.apk   the first published release, 5.8 MB
+│   └── PomodoroTimer-1.1.10.apk  the current published release, 5.8 MB
 ├── fastlane\metadata\android\en-US\   the F-Droid store listing — see Publishing
 │   ├── title.txt                 }
 │   ├── short_description.txt     } listing text, read by F-Droid from this repo
 │   ├── full_description.txt      }
-│   ├── changelogs\10102.txt      one file per versionCode
+│   ├── changelogs\             one file per versionCode: 10102, 10110
 │   └── images\
 │       ├── icon.png              512×512, written by make_launcher_icons.py
 │       └── phoneScreenshots\     four portrait 720×1280 captures
@@ -314,7 +315,9 @@ produced a release, and `v1.1.2` is the only tag of that run with an APK behind 
 ambiguity had a real cost — an F-Droid recipe following tags would have picked `v1.1.6` and
 shipped a build nobody had ever run. So the rule from 1.1.7 on: bump `VERSION` for every
 change, but create a `v*` tag only when that version actually publishes an APK. 1.1.7 itself
-is the first to follow it, and is deliberately untagged.
+is the first to follow it, and 1.1.7 through 1.1.9 are deliberately untagged — they were
+committed locally while the push was blocked. `v1.1.10` is the first tag created under the
+rule, and it carries a real release.
 
 `VERSION` is the *only* place the version is written. `app\build.gradle.kts`
 reads the file and sets `versionName` from it verbatim, deriving `versionCode`
@@ -400,7 +403,9 @@ both branches of `Ui.kt` against Android 16's enforced edge-to-edge display.
 | Signed GitHub release, APK attached | **done** (1.1.2) — [v1.1.2](https://github.com/Micheal-Jiaming/Pomodoro-timer-Android/releases/tag/v1.1.2) |
 | Gradle wrapper committed, so a fresh clone can be built | **done** (1.1.7) — verified by building the release APK through `gradlew` itself |
 | `README.md` landing page for the public repository | **done** (1.1.7) — deliberately thin; see the note under *Layout* |
-| IzzyOnDroid inclusion request | outstanding — needs a Codeberg account; request text drafted below |
+| Source documented to the workspace comment standard | **done** (1.1.10) — the nine Kotlin files went from 0.096 to 0.68 comment-to-code |
+| Second release, `v1.1.10`, carrying the alarm fix | **done** (1.1.10) — supersedes 1.1.2, which shipped the double-count bug |
+| IzzyOnDroid inclusion request | outstanding — Codeberg account created; request text drafted below |
 | F-Droid merge request | outstanding — needs a GitLab account; recipe drafted below |
 
 The listing screenshots are **portrait**, 720×1280 — three themes plus the Custom dialog.
@@ -433,7 +438,8 @@ release URL instead of a build recipe:
 > - **Source:** https://github.com/Micheal-Jiaming/Pomodoro-timer-Android
 > - **Licence:** Apache-2.0
 > - **Releases:** https://github.com/Micheal-Jiaming/Pomodoro-timer-Android/releases —
->   signed APK attached to each tagged release, tags in the form `v1.1.2`
+>   signed APK attached to each tagged release, tags in the form `v1.1.10`. Latest is
+>   `v1.1.10`; the APK is signed with my own key, subject `CN=Micheal-Jiaming`.
 > - **Minimum Android:** 8.0 (API 26)
 >
 > A Pomodoro focus timer. Fully offline: the app declares **no `INTERNET` permission**, so
@@ -461,17 +467,17 @@ RepoType: git
 Repo: https://github.com/Micheal-Jiaming/Pomodoro-timer-Android.git
 
 Builds:
-  - versionName: 1.1.2
-    versionCode: 10102
-    commit: v1.1.2
+  - versionName: 1.1.10
+    versionCode: 10110
+    commit: v1.1.10
     subdir: app
     gradle:
       - yes
 
 AutoUpdateMode: None
 UpdateCheckMode: None
-CurrentVersion: 1.1.2
-CurrentVersionCode: 10102
+CurrentVersion: 1.1.10
+CurrentVersionCode: 10110
 ```
 
 **Why auto-update is switched off in that recipe.** `UpdateCheckMode: Tags` would make
@@ -490,8 +496,10 @@ value outright. Keep the computed version: a single source of truth is the right
 here, and the whole cost is one metadata edit per release.
 
 `UpdateCheckMode: Tags` becomes safe again as soon as the newest `v*` tag is a real release,
-which the tag rule adopted in 1.1.7 now guarantees (see *Version control*). The 1.2.0 feature
-release is the natural moment to switch it back on.
+which the tag rule adopted in 1.1.7 now guarantees (see *Version control*). As of `v1.1.10`
+that is already true, so it could be switched on now — the recipe keeps it off for a first
+submission anyway, because proving one pinned build works is a smaller thing to ask a
+reviewer to check than trusting auto-detection on an app they have never built.
 
 The Gradle wrapper is no longer a concern: `gradlew`, `gradlew.bat` and
 `gradle/wrapper/gradle-wrapper.jar` are now committed, so a fresh clone builds without any
