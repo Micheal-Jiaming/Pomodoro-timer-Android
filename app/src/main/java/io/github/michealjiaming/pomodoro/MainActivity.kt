@@ -27,9 +27,13 @@ import androidx.core.view.WindowCompat
  * Rotation is *not* the example to reach for, despite being the usual one. The
  * manifest declares `configChanges="orientation|screenSize|screenLayout|..."`, so a
  * rotation is delivered as `onConfigurationChanged` and this activity is never
- * destroyed for it. What `viewModels()` actually protects against is the
- * recreations that are not opted out of, and the system rebuilding the activity
- * after reclaiming it.
+ * destroyed for it. What `viewModels()` covers is the configuration changes *not*
+ * on that list — a locale change, for instance — which do recreate the activity.
+ *
+ * It does **not** survive the process being killed: a ViewModel is retained across
+ * configuration changes only, and after process death a fresh one is constructed.
+ * Surviving that is [TimerViewModel.restore]'s job, rebuilding from `Prefs`, which
+ * is why the countdown is persisted rather than merely held in memory.
  */
 class MainActivity : ComponentActivity() {
 

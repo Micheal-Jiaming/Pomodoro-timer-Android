@@ -34,9 +34,14 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
     var keepScreenOn by mutableStateOf(prefs.keepScreenOn)
         private set
 
-    // The same instant expressed on both clocks, or 0 when nothing is running.
-    // deadlineElapsed drives the display; deadlineWall is what gets persisted and
-    // handed to the alarm.
+    // The same instant expressed on both clocks. deadlineElapsed drives the display;
+    // deadlineWall is what gets persisted and handed to the alarm.
+    //
+    // They start at 0 and are never put back to it — nothing zeroes them — so after
+    // the first session they always hold the most recent deadline, running or not.
+    // That is safe only because they are read while a countdown is running (tick) or
+    // in the act of stopping one (pause). Do not read them to decide *whether*
+    // something is running; state.running and prefs.pendingDeadline answer that.
     private var deadlineElapsed = 0L
     private var deadlineWall = 0L
 
@@ -90,8 +95,10 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
     fun toggle() = if (state.running) pause() else start()
 
     /**
-     * Start or resume the countdown. This is the one place a session is armed, and
-     * it does five things that must all happen together.
+     * Start or resume the countdown, doing five things that must all happen together.
+     *
+     * Not the only place an alarm is armed — [restore] arms one too, when it picks up
+     * a countdown that was in flight. Do not write code that assumes a single site.
      *
      * Resuming uses whatever time is left; starting from a finished session (0 left)
      * restarts the full length, which is what makes pressing Start after a session
@@ -213,18 +220,31 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
      * to [Sessions.completeOnce], which performs them exactly once no matter how
      * many times it is called for the same deadline.
      *
-     * What is left is only what the *app* needs afterwards, and both lines matter.
+     * What is left is only what the *app* needs afterwards, and it is conditional on
+     * the app actually being on screen — see below.
      */
     private fun finish() {
         val finished = state.mode
         // May be a no-op: the alarm can get there first. Either way the prompt
         // is shown and the count comes back from the one place that owns it.
         Sessions.completeOnce(app, finished, deadlineWall)
-        // Clear the flag that tells a later launch "a session finished while you
-        // were away". It is about to be shown on screen instead, and leaving it set
-        // would make the prompt reappear the next time the app is opened.
-        prefs.finishedMode = null
-        Alerts.cancelFinished(app)
+        // Both of the next two lines belong to the foreground case ONLY, and guarding
+        // them fixed a real bug. When the app is on screen, the dialog below replaces
+        // the shade notification, so withdrawing the notification and clearing the
+        // "finished while you were away" flag is right — without it the prompt would
+        // reappear on the next launch.
+        //
+        // Backgrounded with the process still alive, this method still runs, and both
+        // lines were actively wrong there. completeOnce has just posted that
+        // notification precisely because the app is not visible; cancelling it left
+        // the user with a beep, a buzz and an empty shade. And clearing the flag threw
+        // away the only durable record that a session needed announcing, so if the
+        // process died before they came back, the session was counted and never
+        // mentioned again.
+        if (AppVisibility.foreground) {
+            prefs.finishedMode = null
+            Alerts.cancelFinished(app)
+        }
         state = state.copy(
             running = false,
             remainingMillis = 0L,

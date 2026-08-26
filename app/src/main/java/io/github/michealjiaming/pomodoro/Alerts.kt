@@ -189,7 +189,7 @@ object Alerts {
         try {
             context.getSystemService(NotificationManager::class.java)?.notify(id, notification)
         } catch (_: SecurityException) {
-            // Notification permission was refused; the in-app UI still works.
+            // See the note above: this is not the refused-permission path.
         }
     }
 

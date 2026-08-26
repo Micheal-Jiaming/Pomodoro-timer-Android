@@ -1,0 +1,12 @@
+Fixes two bugs that could lose the end of a session.
+
+A session could be counted and announced twice: cancelling an alarm could
+overwrite the deadline identifying the session, letting a broadcast already in
+flight slip past the duplicate check.
+
+And a session finishing while the app sat in the background would beep and
+vibrate but leave the notification shade empty, because the app withdrew the
+notification it had just posted. Resuming after a reboot also left no alarm
+armed until the app was reopened.
+
+Backup is now disabled, matching the promise that nothing leaves your device.

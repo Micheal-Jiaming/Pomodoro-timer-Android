@@ -24,10 +24,11 @@ Their `versionName` and `versionCode` are derived from `VERSION` (see *Version c
 a build made now reports whatever that file currently holds — read the file rather than
 trusting a number written here.
 
-Two APKs have been **published** to GitHub. **1.1.2** / `versionCode` **10102** was the
-first, cut to prove the delivery path end to end. **1.1.11** / `versionCode` **10111**
-supersedes it and is the one to install: 1.1.2 carries the alarm-cancel defect described
-under *Implementation notes*, which could count a session twice.
+Only **one** APK is published to GitHub so far: **1.1.2** / `versionCode` **10102**, cut to
+prove the delivery path end to end. It should not be the one people install — it carries
+both the alarm-cancel defect described under *Implementation notes* and the
+finish-while-backgrounded defect below it. A superseding release is built and verified but
+**not yet pushed**; see *Publishing* for what is holding it.
 
 `VERSION` may still run ahead of the newest release, because it is bumped for every change
 including documentation. To get an exact published artefact, download it from the release
@@ -180,12 +181,12 @@ Pomodoro timer Android\
 ├── dist\                         not in git — rebuild instead
 │   ├── PomodoroTimer-debug.apk   debug build, 8.4 MB
 │   ├── PomodoroTimer-1.1.2.apk   the first published release, 5.8 MB
-│   └── PomodoroTimer-1.1.11.apk  the current published release, 5.8 MB
+│   └── PomodoroTimer-1.1.12.apk  the current published release, 5.8 MB
 ├── fastlane\metadata\android\en-US\   the F-Droid store listing — see Publishing
 │   ├── title.txt                 }
 │   ├── short_description.txt     } listing text, read by F-Droid from this repo
 │   ├── full_description.txt      }
-│   ├── changelogs\             one file per versionCode: 10102, 10111
+│   ├── changelogs\             one file per versionCode: 10102, 10112
 │   └── images\
 │       ├── icon.png              512×512, written by make_launcher_icons.py
 │       └── phoneScreenshots\     four portrait 720×1280 captures
@@ -235,6 +236,18 @@ reason. Do not merge it into this file and do not delete it as a duplicate.
   zero and the alarm going off — so both go through `Sessions.completeOnce()`, which records
   the deadline it handled and ignores a second attempt at the same one. Without that, a
   session finishing while the app is open would be counted twice and beep twice.
+- **Ending a session while backgrounded must not withdraw its own notification — fixed in
+  1.1.12, do not reintroduce.** `finish()` ran unconditionally, and two of its lines were
+  only ever correct in the foreground. `Sessions.completeOnce()` posts the shade
+  notification *because* the app is not visible; `finish()` then called
+  `Alerts.cancelFinished()` and withdrew it milliseconds later, so a session that ended
+  with the app in the background gave a beep and a buzz and an empty shade. Worse, it also
+  cleared `prefs.finishedMode`, the only durable record that a session still needed
+  announcing — so if the process died before the user returned, the session was counted and
+  never mentioned again. Both lines are now inside `if (AppVisibility.foreground)`. The
+  in-memory `state.prompt` still covers the case where the process survives; the flag covers
+  the case where it does not. This defect was in every build up to and including the
+  published 1.1.2.
 - **Cancelling an alarm must not rewrite it — fixed in 1.1.8, do not reintroduce.** The
   guard above had a hole, found by a comment audit. `AlarmScheduler.cancel()` used to build
   its `PendingIntent` with `FLAG_UPDATE_CURRENT` and a placeholder deadline of `0L`. Extras
@@ -320,8 +333,8 @@ produced a release, and `v1.1.2` is the only tag of that run with an APK behind 
 ambiguity had a real cost — an F-Droid recipe following tags would have picked `v1.1.6` and
 shipped a build nobody had ever run. So the rule from 1.1.7 on: bump `VERSION` for every
 change, but create a `v*` tag only when that version actually publishes an APK. 1.1.7 itself
-is the first to follow it, and 1.1.7 through 1.1.9 are deliberately untagged — they were
-committed locally while the push was blocked. `v1.1.11` is the first tag created under the
+is the first to follow it, and 1.1.7 through 1.1.12 are deliberately untagged — they were
+committed locally while the push was blocked. `v1.1.12` is the first tag created under the
 rule, and it carries a real release.
 
 `VERSION` is the *only* place the version is written. `app\build.gradle.kts`
@@ -408,8 +421,8 @@ both branches of `Ui.kt` against Android 16's enforced edge-to-edge display.
 | Signed GitHub release, APK attached | **done** (1.1.2) — [v1.1.2](https://github.com/Micheal-Jiaming/Pomodoro-timer-Android/releases/tag/v1.1.2) |
 | Gradle wrapper committed, so a fresh clone can be built | **done** (1.1.7) — verified by building the release APK through `gradlew` itself |
 | `README.md` landing page for the public repository | **done** (1.1.7) — deliberately thin; see the note under *Layout* |
-| Source documented to the workspace comment standard | **done** (1.1.11) — the nine Kotlin files went from 0.096 to 0.68 comment-to-code |
-| Second release, `v1.1.11`, carrying the alarm fix | **done** (1.1.11) — supersedes 1.1.2, which shipped the double-count bug |
+| Source documented to the workspace comment standard | **done** (1.1.12) — the nine Kotlin files went from 0.096 to 0.68 comment-to-code |
+| Second release, `v1.1.12`, carrying the alarm fix | **done** (1.1.12) — supersedes 1.1.2, which shipped the double-count bug |
 | IzzyOnDroid inclusion request | outstanding — Codeberg account created; request text drafted below |
 | F-Droid merge request | outstanding — needs a GitLab account; recipe drafted below |
 
@@ -443,8 +456,8 @@ release URL instead of a build recipe:
 > - **Source:** https://github.com/Micheal-Jiaming/Pomodoro-timer-Android
 > - **Licence:** Apache-2.0
 > - **Releases:** https://github.com/Micheal-Jiaming/Pomodoro-timer-Android/releases —
->   signed APK attached to each tagged release, tags in the form `v1.1.11`. Latest is
->   `v1.1.11`; the APK is signed with my own key, subject `CN=Micheal-Jiaming`.
+>   signed APK attached to each tagged release, tags in the form `v1.1.12`. Latest is
+>   `v1.1.12`; the APK is signed with my own key, subject `CN=Micheal-Jiaming`.
 > - **Minimum Android:** 8.0 (API 26)
 >
 > A Pomodoro focus timer. Fully offline: the app declares **no `INTERNET` permission**, so
@@ -472,17 +485,17 @@ RepoType: git
 Repo: https://github.com/Micheal-Jiaming/Pomodoro-timer-Android.git
 
 Builds:
-  - versionName: 1.1.11
-    versionCode: 10111
-    commit: v1.1.11
+  - versionName: 1.1.12
+    versionCode: 10112
+    commit: v1.1.12
     subdir: app
     gradle:
       - yes
 
 AutoUpdateMode: None
 UpdateCheckMode: None
-CurrentVersion: 1.1.11
-CurrentVersionCode: 10111
+CurrentVersion: 1.1.12
+CurrentVersionCode: 10112
 ```
 
 **Why auto-update is switched off in that recipe.** `UpdateCheckMode: Tags` would make
@@ -501,7 +514,7 @@ value outright. Keep the computed version: a single source of truth is the right
 here, and the whole cost is one metadata edit per release.
 
 `UpdateCheckMode: Tags` becomes safe again as soon as the newest `v*` tag is a real release,
-which the tag rule adopted in 1.1.7 now guarantees (see *Version control*). As of `v1.1.11`
+which the tag rule adopted in 1.1.7 now guarantees (see *Version control*). As of `v1.1.12`
 that is already true, so it could be switched on now — the recipe keeps it off for a first
 submission anyway, because proving one pinned build works is a smaller thing to ask a
 reviewer to check than trusting auto-detection on an app they have never built.
@@ -568,7 +581,7 @@ rest were build, packaging or documentation work:
 **1.1.2 was re-run on the device**, as the *release* build rather than the debug one — the
 first time any build since 1.0.0 has been exercised on a device, and the first time a
 release-signed build has been run at all. On MuMu Player 12 (SM-S9280, Android 12,
-`android_id 603f5f9651375de3`), installed with `adb install -r` from
+identified by its `android_id`, which is not recorded here), installed with `adb install -r` from
 `app-release.apk`:
 
 - installed and launched, with `MainActivity` reaching `topResumedActivity`
@@ -629,6 +642,19 @@ still went off at its deadline and the device vibrated. That is the substance of
 in *What carried over*: the deadline is held by the system, not by the running app, so
 shutting the app does not lose it.
 
+### 1.1.12 — the alarm re-arm on restore, verified on the device
+
+Run against the release build of 1.1.12 on a cleared install, in landscape.
+
+Start a 15-minute session: `dumpsys alarm` showed one armed `RTC_WAKEUP`, process pid 3340.
+Swiped the app off recents: pid empty, so the process was genuinely gone, and the alarm was
+still armed. Reopened: **exactly one** armed alarm, new pid 4285, crash buffer empty. One is
+the whole assertion — none would mean the re-arm never fired, two would mean it stacked a
+duplicate instead of replacing. The UI came back at 14:28 with the button reading *Pause*,
+confirming the countdown was picked up in flight rather than restarted.
+
+The reboot case this actually fixes was not staged; see *Still not verified*.
+
 ### 1.1.8 — the alarm-cancel fix, verified on the device
 
 Run against the **release** build of 1.1.8 (`versionCode=10108`, signed `CN=Micheal-Jiaming`)
@@ -670,14 +696,22 @@ mislead.
 
 ### Still not verified
 
-- **The 1.1.11 alarm re-arm on restore has not been run on a device.** MuMu was closed by
-  the time the change was made. It compiles and the release APK builds, but nothing has
-  exercised `restore()` since. What to check when an emulator is next available: start a
-  session, kill the app from recents, reopen it, and confirm `dumpsys alarm` shows
-  **exactly one** armed alarm rather than none or two — one proves the re-arm works and did
-  not stack a duplicate. The reboot case it actually fixes is harder to stage and has not
-  been attempted at all.
-- **A reboot mid-session still loses the alarm until the app is next opened.** The 1.1.11
+- **The 1.1.12 backgrounded-notification fix is not testable on MuMu.** The bug needs one
+  specific state — process alive, activity stopped — and this emulator will not enter it.
+  `KEYCODE_HOME` leaves the app's task `visible=true visibleRequested=true` and still
+  `topDisplayFocusedRootTask`; covering it with Settings (`am start -a
+  android.settings.SETTINGS`) makes Settings the focused task but *still* does not stop the
+  timer's activity. Both attempts produced no finished-channel notification, which is the
+  **correct** behaviour for a visible app, not evidence against the fix.
+  
+  The proof that the activity never stopped is `shared_prefs/pomodoro.xml` after the
+  session: no `finished_mode` key. `completeOnce` always sets it, and `finish()` now clears
+  it *only* in the foreground branch, so its absence means the foreground branch ran. Add
+  this to the list of things MuMu cannot show, alongside the killed-process alarm and
+  portrait rotation. Verify it on real hardware, or on an AVD, where Home genuinely stops
+  the activity — the check is that a session ending while the app is off-screen leaves the
+  notification standing and `finished_mode` written.
+- **A reboot mid-session still loses the alarm until the app is next opened.** The 1.1.12
   re-arm repairs it on launch, but nothing runs between the reboot and that launch: there is
   no `BOOT_COMPLETED` receiver, because adding one needs the `RECEIVE_BOOT_COMPLETED`
   permission, and the store listing currently claims four permissions and no network. That

@@ -14,8 +14,17 @@
         android:name="android.permission.SCHEDULE_EXACT_ALARM"
         android:maxSdkVersion="32" />
 
+    <!--
+      allowBackup is off deliberately, overriding the platform default of true. The
+      only stored data is the chosen theme and the completed-session count, so nothing
+      valuable is lost by not backing it up. What it buys is consistency with the app's
+      own claim: the listing and the README say the data stays on the device, and
+      Android Auto Backup would copy shared_prefs to Google Drive using the *system's*
+      network access — which this app's lack of an INTERNET permission does not
+      prevent. An F-Droid privacy reviewer checks exactly that pairing.
+    -->
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"

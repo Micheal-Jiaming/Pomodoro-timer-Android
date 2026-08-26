@@ -1,7 +1,0 @@
-Fixes a bug where a session could be counted and announced twice: cancelling an
-alarm could overwrite the deadline that identifies the session, and a broadcast
-already on its way then slipped past the duplicate check.
-
-Also in this release: the repository now carries the Gradle wrapper, so it can be
-built from a fresh clone, and the source is documented throughout. No change to
-what the app does or to the permissions it asks for — still no internet access.
