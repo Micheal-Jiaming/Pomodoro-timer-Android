@@ -8,9 +8,14 @@ plugins {
 // The VERSION file at the project root is the single source of truth for the
 // version, so it cannot drift from what the app reports. versionName is the file
 // verbatim; versionCode is derived from it (1.1.0 -> 10100) so it always rises
-// with it, which is what Google Play and `adb install -r` require. A missing or
-// unparsable file yields the obviously-wrong name "0.0.0" rather than breaking
-// the build, and the code is floored at 1 because Android rejects 0.
+// with it, which is what Google Play and `adb install -r` require.
+//
+// The two failure modes are not the same, and neither breaks the build. A
+// *missing* file yields the obviously-wrong name "0.0.0". A file that is present
+// but is not a version — say "banana" — is used verbatim as versionName and
+// would ship that way; only versionCode degrades, to the floor of 1, because
+// toIntOrNull() maps each unparsable part to 0 and Android rejects a code of 0.
+// So a corrupt VERSION is caught by review, not by the build.
 val versionFile = rootProject.file("VERSION")
 val appVersionName: String =
     if (versionFile.isFile) versionFile.readText().trim() else "0.0.0"

@@ -26,5 +26,14 @@ desktop.ini
 # refuses any update signed by a different key — so it must never be published,
 # and must be backed up somewhere outside this repository. Its password lives in
 # local.properties, which is ignored above.
+#
+# The extensions matter: keytool now writes PKCS#12 by default, so a key
+# regenerated under its natural name would be .p12 or .pfx and would not have
+# been caught by the two patterns below. Leaking this key is unrecoverable, so
+# the list covers the plausible names rather than only the ones used today.
 *.keystore
 *.jks
+*.p12
+*.pfx
+keystore.properties
+signing.properties

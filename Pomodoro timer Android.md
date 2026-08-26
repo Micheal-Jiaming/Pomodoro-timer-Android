@@ -229,6 +229,20 @@ reason. Do not merge it into this file and do not delete it as a duplicate.
   zero and the alarm going off — so both go through `Sessions.completeOnce()`, which records
   the deadline it handled and ignores a second attempt at the same one. Without that, a
   session finishing while the app is open would be counted twice and beep twice.
+- **Cancelling an alarm must not rewrite it — fixed in 1.1.8, do not reintroduce.** The
+  guard above had a hole, found by a comment audit. `AlarmScheduler.cancel()` used to build
+  its `PendingIntent` with `FLAG_UPDATE_CURRENT` and a placeholder deadline of `0L`. Extras
+  take no part in matching a `PendingIntent`, so the placeholder looked harmless — but that
+  flag *rewrites* the live intent's extras, so cancelling overwrote the armed deadline with
+  0. A broadcast already dispatched and not yet delivered then arrived carrying `deadline =
+  0`, and `completeOnce()` skipped its duplicate check whenever the deadline was 0, so the
+  session was counted and announced a second time. Two changes close it: the cancel path now
+  looks the alarm up with `FLAG_NO_CREATE`, which finds it without modifying it, and
+  `completeOnce()` now **refuses** a zero deadline instead of waving it through. Zero is not
+  a real session — every in-app caller passes a live deadline and `restore()` only calls in
+  from inside `if (deadline > 0L)` — so refusing it is what makes the guard unbypassable.
+  If you ever need a placeholder `PendingIntent` again, use `FLAG_NO_CREATE`, never
+  `FLAG_UPDATE_CURRENT`.
 - **No foreground service.** A timer has no `foregroundServiceType` that fits, and it
   doesn't need one: an exact alarm handles the deadline, and an ongoing notification with
   `setChronometerCountDown` displays the countdown without anything staying awake to update
@@ -603,6 +617,14 @@ shutting the app does not lose it.
 
 ### Still not verified
 
+- **The 1.1.8 alarm-cancel fix has not been run on a device.** It compiles and the release
+  APK builds, but MuMu was not running when the change was made, so the end-of-session path
+  has not been exercised since. What needs re-testing: a session completing with the app
+  open, a session completing with the app closed, and Reset while a countdown is armed —
+  the last one is the path that changed, since Reset is what calls
+  `AlarmScheduler.cancel()`. The bug being fixed was a *duplicate* completion under a race,
+  which is hard to trigger deliberately; the realistic check is that ordinary completion
+  and cancellation still work at all, rather than that the race is gone.
 - **The 880 Hz tone has still never been heard.** Vibration was felt at the deadline, but
   MuMu's audio is muted, so the synthesised tone in `Alerts` remains unlistened-to. The
   alert it belongs to demonstrably fires; only its sound is unconfirmed.
