@@ -24,10 +24,14 @@ Their `versionName` and `versionCode` are derived from `VERSION` (see *Version c
 a build made now reports whatever that file currently holds — read the file rather than
 trusting a number written here.
 
-The APK **published** to GitHub is **1.1.2** / `versionCode` **10102**. Every version since
-has changed only this document and the listing images, so no new release was cut for them;
-that is why `VERSION` runs ahead of the published release. To get the exact published
-artefact, download it from the release rather than rebuilding.
+Two APKs have been **published** to GitHub. **1.1.2** / `versionCode` **10102** was the
+first, cut to prove the delivery path end to end. **1.1.11** / `versionCode` **10111**
+supersedes it and is the one to install: 1.1.2 carries the alarm-cancel defect described
+under *Implementation notes*, which could count a session twice.
+
+`VERSION` may still run ahead of the newest release, because it is bumped for every change
+including documentation. To get an exact published artefact, download it from the release
+rather than rebuilding — a rebuild reports whatever `VERSION` holds today.
 
 The application ID is `io.github.michealjiaming.pomodoro` and **must never change again**:
 an app's ID is its permanent identity on every store, and altering it after publication
@@ -75,9 +79,10 @@ Point `ANDROID_HOME` at your SDK, or set `sdk.dir` in `local.properties`. This i
 a reviewer or a contributor will take, and the reason the wrapper is in git at all: before
 it was added, cloning this repository gave you something you could not build.
 
-Verified on 26 Aug 2026 — `gradlew.bat assembleRelease` produced a 6,069,210-byte APK
-signed `CN=Micheal-Jiaming`, the same size and the same certificate as the script route
-below produces.
+Verified on 26 Aug 2026 — `gradlew.bat assembleRelease` produced an APK of the same size and
+carrying the same certificate (`CN=Micheal-Jiaming`) as the script route below produces. No
+byte count is quoted here on purpose: it changes with every code change, and a figure in this
+document would be stale by the next commit.
 
 ### From the command line, with the toolchain already here
 
@@ -175,12 +180,12 @@ Pomodoro timer Android\
 ├── dist\                         not in git — rebuild instead
 │   ├── PomodoroTimer-debug.apk   debug build, 8.4 MB
 │   ├── PomodoroTimer-1.1.2.apk   the first published release, 5.8 MB
-│   └── PomodoroTimer-1.1.10.apk  the current published release, 5.8 MB
+│   └── PomodoroTimer-1.1.11.apk  the current published release, 5.8 MB
 ├── fastlane\metadata\android\en-US\   the F-Droid store listing — see Publishing
 │   ├── title.txt                 }
 │   ├── short_description.txt     } listing text, read by F-Droid from this repo
 │   ├── full_description.txt      }
-│   ├── changelogs\             one file per versionCode: 10102, 10110
+│   ├── changelogs\             one file per versionCode: 10102, 10111
 │   └── images\
 │       ├── icon.png              512×512, written by make_launcher_icons.py
 │       └── phoneScreenshots\     four portrait 720×1280 captures
@@ -316,7 +321,7 @@ ambiguity had a real cost — an F-Droid recipe following tags would have picked
 shipped a build nobody had ever run. So the rule from 1.1.7 on: bump `VERSION` for every
 change, but create a `v*` tag only when that version actually publishes an APK. 1.1.7 itself
 is the first to follow it, and 1.1.7 through 1.1.9 are deliberately untagged — they were
-committed locally while the push was blocked. `v1.1.10` is the first tag created under the
+committed locally while the push was blocked. `v1.1.11` is the first tag created under the
 rule, and it carries a real release.
 
 `VERSION` is the *only* place the version is written. `app\build.gradle.kts`
@@ -403,8 +408,8 @@ both branches of `Ui.kt` against Android 16's enforced edge-to-edge display.
 | Signed GitHub release, APK attached | **done** (1.1.2) — [v1.1.2](https://github.com/Micheal-Jiaming/Pomodoro-timer-Android/releases/tag/v1.1.2) |
 | Gradle wrapper committed, so a fresh clone can be built | **done** (1.1.7) — verified by building the release APK through `gradlew` itself |
 | `README.md` landing page for the public repository | **done** (1.1.7) — deliberately thin; see the note under *Layout* |
-| Source documented to the workspace comment standard | **done** (1.1.10) — the nine Kotlin files went from 0.096 to 0.68 comment-to-code |
-| Second release, `v1.1.10`, carrying the alarm fix | **done** (1.1.10) — supersedes 1.1.2, which shipped the double-count bug |
+| Source documented to the workspace comment standard | **done** (1.1.11) — the nine Kotlin files went from 0.096 to 0.68 comment-to-code |
+| Second release, `v1.1.11`, carrying the alarm fix | **done** (1.1.11) — supersedes 1.1.2, which shipped the double-count bug |
 | IzzyOnDroid inclusion request | outstanding — Codeberg account created; request text drafted below |
 | F-Droid merge request | outstanding — needs a GitLab account; recipe drafted below |
 
@@ -438,8 +443,8 @@ release URL instead of a build recipe:
 > - **Source:** https://github.com/Micheal-Jiaming/Pomodoro-timer-Android
 > - **Licence:** Apache-2.0
 > - **Releases:** https://github.com/Micheal-Jiaming/Pomodoro-timer-Android/releases —
->   signed APK attached to each tagged release, tags in the form `v1.1.10`. Latest is
->   `v1.1.10`; the APK is signed with my own key, subject `CN=Micheal-Jiaming`.
+>   signed APK attached to each tagged release, tags in the form `v1.1.11`. Latest is
+>   `v1.1.11`; the APK is signed with my own key, subject `CN=Micheal-Jiaming`.
 > - **Minimum Android:** 8.0 (API 26)
 >
 > A Pomodoro focus timer. Fully offline: the app declares **no `INTERNET` permission**, so
@@ -467,17 +472,17 @@ RepoType: git
 Repo: https://github.com/Micheal-Jiaming/Pomodoro-timer-Android.git
 
 Builds:
-  - versionName: 1.1.10
-    versionCode: 10110
-    commit: v1.1.10
+  - versionName: 1.1.11
+    versionCode: 10111
+    commit: v1.1.11
     subdir: app
     gradle:
       - yes
 
 AutoUpdateMode: None
 UpdateCheckMode: None
-CurrentVersion: 1.1.10
-CurrentVersionCode: 10110
+CurrentVersion: 1.1.11
+CurrentVersionCode: 10111
 ```
 
 **Why auto-update is switched off in that recipe.** `UpdateCheckMode: Tags` would make
@@ -496,7 +501,7 @@ value outright. Keep the computed version: a single source of truth is the right
 here, and the whole cost is one metadata edit per release.
 
 `UpdateCheckMode: Tags` becomes safe again as soon as the newest `v*` tag is a real release,
-which the tag rule adopted in 1.1.7 now guarantees (see *Version control*). As of `v1.1.10`
+which the tag rule adopted in 1.1.7 now guarantees (see *Version control*). As of `v1.1.11`
 that is already true, so it could be switched on now — the recipe keeps it off for a first
 submission anyway, because proving one pinned build works is a smaller thing to ask a
 reviewer to check than trusting auto-detection on an app they have never built.
@@ -665,6 +670,18 @@ mislead.
 
 ### Still not verified
 
+- **The 1.1.11 alarm re-arm on restore has not been run on a device.** MuMu was closed by
+  the time the change was made. It compiles and the release APK builds, but nothing has
+  exercised `restore()` since. What to check when an emulator is next available: start a
+  session, kill the app from recents, reopen it, and confirm `dumpsys alarm` shows
+  **exactly one** armed alarm rather than none or two — one proves the re-arm works and did
+  not stack a duplicate. The reboot case it actually fixes is harder to stage and has not
+  been attempted at all.
+- **A reboot mid-session still loses the alarm until the app is next opened.** The 1.1.11
+  re-arm repairs it on launch, but nothing runs between the reboot and that launch: there is
+  no `BOOT_COMPLETED` receiver, because adding one needs the `RECEIVE_BOOT_COMPLETED`
+  permission, and the store listing currently claims four permissions and no network. That
+  is a deliberate open trade, not an oversight.
 - **The double-count race itself has never been reproduced.** The 1.1.8 fix is verified in
   the sense that both guards are present and that completion, cancellation and re-arming all
   work (see above), but the collision it prevents — a cancel landing on an

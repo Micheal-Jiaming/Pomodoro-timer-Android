@@ -17,9 +17,10 @@ dependencyResolutionManagement {
     // Only these two repositories, declared here and nowhere else. FAIL_ON_PROJECT_REPOS
     // turns a `repositories {}` block inside app/build.gradle.kts into a build
     // *error* rather than quietly merging it. That is deliberate: it means the
-    // complete list of places this build can fetch code from is the four lines
-    // visible in this file, which is what makes the dependency surface auditable —
-    // and F-Droid does audit it.
+    // complete list of places this build can fetch code from is the repository lines
+    // visible in this file — three distinct hosts, google(), mavenCentral() and
+    // gradlePluginPortal(), the last only for plugins. That is what makes the
+    // dependency surface auditable by reading one file, and F-Droid does audit it.
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()

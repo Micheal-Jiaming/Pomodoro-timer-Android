@@ -3,11 +3,14 @@
 The drawing is the one from `Pomodoro timer\\make_icon.py`, rendered at 1024 px
 and downsampled, so the phone icon and the Windows icon are the same picture.
 
-Produces, under app/src/main/res/:
+Writes, under app/src/main/res/:
   mipmap-*/ic_launcher.png          legacy square icon
   mipmap-*/ic_launcher_round.png    legacy round icon
   mipmap-*/ic_launcher_fg.png       adaptive foreground (Android 8+)
-  mipmap-anydpi-v26/ic_launcher.xml adaptive icon, written by hand alongside
+
+Does NOT write mipmap-anydpi-v26/ic_launcher.xml, the adaptive-icon descriptor.
+That file is maintained by hand and merely points at the PNGs above, so running
+this script leaves it alone.
 
 And, for the F-Droid store listing:
   fastlane/metadata/android/en-US/images/icon.png    512 px listing icon

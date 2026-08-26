@@ -76,6 +76,10 @@ android {
 
     defaultConfig {
         applicationId = "io.github.michealjiaming.pomodoro"
+        // Android 8.0. Load-bearing, not a guess: notification channels arrived in
+        // 26, and Alerts.ensureChannels creates them unconditionally with no
+        // older-API branch. Lowering this floor would mean adding one, because on
+        // API 25 and below a channel-addressed notification has nowhere to go.
         minSdk = 26
         targetSdk = 34
         versionCode = appVersionCode
@@ -117,6 +121,12 @@ android {
 
     packaging {
         resources {
+            // Licence files that arrive inside more than one dependency — the
+            // coroutines artifacts each carry a copy. Two files with the same path
+            // cannot both be packaged, so the build fails with a duplicate-resource
+            // error unless one is dropped. Excluding them is the standard remedy and
+            // removes nothing the app uses; the project's own licence is LICENSE at
+            // the repository root.
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }

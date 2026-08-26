@@ -203,12 +203,27 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
         if (left <= 0L) finish() else state = state.copy(remainingMillis = left)
     }
 
+    /**
+     * The in-app half of ending a session, called from [tick] when the countdown
+     * reaches zero.
+     *
+     * The alarm is the other half and either may arrive first, so none of the real
+     * work happens here: counting the session, clearing the persisted deadline,
+     * cancelling the ongoing notification and sounding the alert are all delegated
+     * to [Sessions.completeOnce], which performs them exactly once no matter how
+     * many times it is called for the same deadline.
+     *
+     * What is left is only what the *app* needs afterwards, and both lines matter.
+     */
     private fun finish() {
         val finished = state.mode
         // May be a no-op: the alarm can get there first. Either way the prompt
         // is shown and the count comes back from the one place that owns it.
         Sessions.completeOnce(app, finished, deadlineWall)
-        prefs.finishedMode = null      // about to be shown in the app itself
+        // Clear the flag that tells a later launch "a session finished while you
+        // were away". It is about to be shown on screen instead, and leaving it set
+        // would make the prompt reappear the next time the app is opened.
+        prefs.finishedMode = null
         Alerts.cancelFinished(app)
         state = state.copy(
             running = false,
@@ -270,16 +285,25 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Rebuild whatever was going on before the process went away: a countdown
-     * still in flight is picked up mid-air, one that ran out is completed.
+     * Rebuild whatever was going on before the process went away. Called once, from
+     * `init`, so it runs before anything can be displayed.
+     *
+     * Three cases, and the third is easy to overlook. A countdown still in flight is
+     * picked up mid-air. One whose deadline has already passed is completed on the
+     * spot. And if there is no deadline at all but `finishedMode` is set, then the
+     * alarm receiver finished a session while this process was dead — the work is
+     * already done and recorded, so all that is restored is the prompt to show for
+     * it. That third path is the one `Prefs.clearPending` leaves
+     * `pendingTotalSeconds` intact for.
      */
     private fun restore() {
         var restored = TimerState(sessionsDone = prefs.sessionsDone)
         val deadline = prefs.pendingDeadline
 
         // A non-zero deadline means a countdown was in flight when the process went
-        // away. Note that everything below this point is guaranteed a real deadline,
-        // which is why Sessions.completeOnce can refuse a zero one outright.
+        // away. Inside this branch — not below it, since the else at the bottom is
+        // the zero case — the deadline is guaranteed real, which is why
+        // Sessions.completeOnce can refuse a zero one outright.
         if (deadline > 0L) {
             // Wall clock, not elapsedRealtime: the process may have been gone across
             // a reboot, which resets elapsedRealtime but not the wall clock.
@@ -289,6 +313,15 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
             if (left > 0L) {
                 deadlineWall = deadline
                 deadlineElapsed = SystemClock.elapsedRealtime() + left
+                // Re-arm the alarm rather than assuming it is still there. It
+                // usually is — a PendingIntent outlives the process — but it does
+                // NOT survive a reboot, and nothing else would notice. Without this,
+                // resuming a session after a restart gave a live countdown and a
+                // ticking notification with no alarm behind them, so backgrounding
+                // the app meant the deadline passed in silence. Re-arming is
+                // idempotent: the same request code replaces any existing alarm
+                // instead of stacking a second one.
+                AlarmScheduler.schedule(app, deadline, mode)
                 Alerts.showRunning(app, mode, deadline)
                 restored = restored.copy(
                     mode = mode,

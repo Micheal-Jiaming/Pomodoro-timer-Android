@@ -312,9 +312,13 @@ private fun ColumnScope.Controls(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(text = "Keep screen on", color = palette.muted, fontSize = 13.sp)
             Spacer(Modifier.width(6.dp))
-            // Every colour is overridden. Material's defaults come from its own
-            // theme, which would ignore the app's palette and leave this switch
-            // looking wrong in Paper and Mist.
+            // Five of the SwitchColors slots are named explicitly. Most of the rest
+            // would already be right, because SwitchDefaults resolves them from the
+            // ambient MaterialTheme and Theme.kt maps that from the palette. The
+            // reason to name these anyway is the ones Theme.kt does not set — the
+            // unchecked track resolves from a surface role the palette never
+            // supplies, so left alone it comes from Material's own defaults and
+            // looks wrong against Paper and Mist.
             Switch(
                 checked = vm.keepScreenOn,
                 onCheckedChange = vm::updateKeepScreenOn,
@@ -375,12 +379,13 @@ private fun CountdownRing(state: TimerState, palette: Palette, diameter: Dp) {
             )
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            // MM:SS at 21% of the diameter. Taking the number from `diameter.value`
-            // — a dp figure — and using it as sp means these digits scale with the
-            // ring instead of with the system font-size setting. The upside is that
-            // the text always fits inside the circle at any ring size; the cost is
-            // that a user who has enlarged their system font does not get larger
-            // digits here.
+            // MM:SS at 21% of the diameter, so the digits grow and shrink with the
+            // ring. Be careful what that does NOT mean: `.sp` is still resolved
+            // against the user's font-scale setting, so the size that actually lands
+            // is 0.21 × diameter × fontScale. The digits track the ring *and* the
+            // system font size, and at a large font scale they can outgrow the
+            // circle. Pinning them to the ring alone would mean converting dp to sp
+            // through LocalDensity, which this deliberately does not do.
             Text(
                 text = formatRemaining(state.remainingMillis),
                 color = palette.fg,

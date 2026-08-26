@@ -91,9 +91,23 @@ object Alerts {
     }
 
     /**
-     * An ongoing notification that counts down on its own — the platform ticks
-     * the chronometer, so no service has to stay awake to update it. This is the
+     * An ongoing notification that counts down on its own — the platform ticks the
+     * chronometer, so no service has to stay awake to update it. This is the
      * counterpart of the remaining time in the desktop title bar.
+     *
+     * mode decides the title text only. deadlineWallMs is when the session ends, in
+     * milliseconds since the epoch on the same clock as `System.currentTimeMillis` —
+     * the clock basis is not incidental, because the platform compares it against
+     * the wall clock to render the countdown.
+     *
+     * Four builder calls are really one mechanism, and none works without the
+     * others: `setWhen` supplies the target instant, `setShowWhen` makes it visible,
+     * `setUsesChronometer` renders it as a running timer rather than a fixed time,
+     * and `setChronometerCountDown` makes it count down to the instant instead of up
+     * from it. Drop any one and the shade shows the wrong thing.
+     *
+     * `setOngoing(true)` is what stops the user swiping it away mid-session; the
+     * consequence is that [cancelRunning] becomes the only way to remove it.
      */
     fun showRunning(context: Context, mode: Mode, deadlineWallMs: Long) {
         val label = if (mode == Mode.BREAK) R.string.notif_break else R.string.notif_work
@@ -164,10 +178,12 @@ object Alerts {
     /**
      * Post a notification, tolerating a refused permission.
      *
-     * A missing POST_NOTIFICATIONS grant makes notify() throw rather than return a
-     * failure, and there is nothing useful to do about it: the session has still
-     * ended and the in-app UI will still show it. Swallowing is the correct
-     * behaviour here, not laziness.
+     * Note that a refused POST_NOTIFICATIONS grant is *not* what this catch is for.
+     * notify() returns void, and when notifications are blocked the platform simply
+     * drops the post — only areNotificationsEnabled() would reveal it. The catch
+     * exists for the narrower cases that do raise SecurityException. Either way
+     * there is nothing useful to do: the session has still ended, and the in-app UI
+     * will still show it. Swallowing is correct here, not laziness.
      */
     private fun notify(context: Context, id: Int, notification: Notification) {
         try {
@@ -291,8 +307,10 @@ object Alerts {
      * vibration. The older call still works below 12 and is deprecated above it,
      * hence the version split and the suppression.
      *
-     * A device with no vibrator returns null and this does nothing, which is
-     * correct — a tablet without a motor should not be an error case.
+     * A device with no actuator is not the null case: it still hands back a real
+     * Vibrator, whose vibrate() is simply a no-op (hasVibrator() would report
+     * false). So absent hardware needs no handling at all. The `?: return` is
+     * defending against the service itself being unavailable, which is rare.
      */
     private fun vibrate(context: Context) {
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

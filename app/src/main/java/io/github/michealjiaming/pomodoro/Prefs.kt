@@ -67,8 +67,7 @@ class Prefs(context: Context) {
     /**
      * Mark that no countdown is in flight, by zeroing the deadline.
      *
-     * Only the deadline is cleared, and the name therefore promises more than the
-     * body delivers — this note is the reconciliation.
+     * Only the deadline is cleared, so the name promises more than the body delivers.
      *
      * pendingMode and pendingTotalSeconds are left holding the finished session's
      * values on purpose, because one of them is still needed afterwards:

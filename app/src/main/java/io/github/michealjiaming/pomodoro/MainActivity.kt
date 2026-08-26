@@ -20,10 +20,16 @@ import androidx.core.view.WindowCompat
  * The only activity. It owns the window — background colour, system bars, keeping
  * the screen awake — and hands everything else to Compose.
  *
- * It holds no timer state of its own. [TimerViewModel] survives configuration
- * changes such as rotation, which is why `by viewModels()` is used rather than a
- * plain field: a rotation destroys and recreates this activity, and a field would
- * take the running countdown with it.
+ * It holds no timer state of its own; [TimerViewModel] owns all of it, and
+ * `by viewModels()` is what makes that state outlive a recreation of this activity
+ * where a plain field would not.
+ *
+ * Rotation is *not* the example to reach for, despite being the usual one. The
+ * manifest declares `configChanges="orientation|screenSize|screenLayout|..."`, so a
+ * rotation is delivered as `onConfigurationChanged` and this activity is never
+ * destroyed for it. What `viewModels()` actually protects against is the
+ * recreations that are not opted out of, and the system rebuilding the activity
+ * after reclaiming it.
  */
 class MainActivity : ComponentActivity() {
 
@@ -51,6 +57,13 @@ class MainActivity : ComponentActivity() {
             val view = LocalView.current
 
             // System bars follow the theme, so a light theme gets dark icons.
+            // Keyed on `palette`, so this re-runs whenever the theme is cycled.
+            //
+            // The two suppressions are deliberate, not leftovers. Both setters are
+            // deprecated from Android 15 in favour of drawing behind the bars with
+            // edge-to-edge insets, but they still work, and the alternative is a
+            // layout change this app does not otherwise need. Revisit if targetSdk
+            // moves to 35 or beyond.
             LaunchedEffect(palette) {
                 @Suppress("DEPRECATION")
                 window.statusBarColor = palette.bg.toArgb()
