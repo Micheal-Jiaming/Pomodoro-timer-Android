@@ -367,7 +367,9 @@ private fun CountdownRing(state: TimerState, palette: Palette, diameter: Dp) {
                 size = arcSize,
                 style = Stroke(width = stroke, cap = StrokeCap.Butt),
             )
-            // Depletes clockwise from twelve o'clock, as on the desktop.
+            // The remaining time, drawn clockwise from twelve o'clock as on the desktop.
+            // The arc shortens back towards twelve as the session runs down, so the gap
+            // opens anti-clockwise of twelve and widens that way, not clockwise.
             drawArc(
                 color = accent,
                 startAngle = -90f,

@@ -43,6 +43,30 @@ your chosen theme and your session count, stay on your device.
 
 ## Installing
 
+### From my F-Droid repository
+
+The app is also published from its own small F-Droid repository, which gives you
+the ordinary store experience: a listing with a description, and updates offered
+to you instead of hunted down.
+
+1. Install [F-Droid](https://f-droid.org/) if you do not already have it.
+2. Open **Settings → Repositories**, tap **+**, and add this address:
+
+```
+https://micheal-jiaming.github.io/Pomodoro-timer-Android/fdroid/repo?fingerprint=8403BEEFFFB9AD148C5E428FC951D84E48DA9DE7ACB6DB3E5C1DE6158DD69DAC
+```
+
+3. Refresh, search for **Pomodoro Timer**, and install.
+
+Keep the `fingerprint` on the end. It is not decoration — the client pins the
+repository's signing key to it, so a repository served from a hijacked address
+would be rejected rather than quietly trusted.
+
+This repository serves the same APK, signed with the same key, as the Releases
+page above, so you can switch between the two freely.
+
+### By downloading the APK directly
+
 Download the APK from [Releases](https://github.com/Micheal-Jiaming/Pomodoro-timer-Android/releases/latest)
 and open it on your phone. Android will ask you to allow installing apps from
 this source, because it did not come from a store.
