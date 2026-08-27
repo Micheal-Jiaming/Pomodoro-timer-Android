@@ -197,7 +197,10 @@ Pomodoro timer Android\
 │       ├── index.html            a browsable page listing the app
 │       ├── diff\                 per-timestamp index diffs, for incremental clients
 │       ├── icons\icon.png        the repository icon; MUST match what the index attests
-│       ├── icons-120\ .. -640\   generated empty, so absent from git; see Known gaps
+│       ├── icons-120\ .. -640\   generated empty, so absent from git; harmless
+│       ├── io.github...\en-US\   listing graphics fdroidserver copies here from
+│       │   ├── icon_<hash>.png     metadata\; the index references these by
+│       │   └── phoneScreenshots\   content-addressed name
 │       └── io.github.michealjiaming.pomodoro_10113.apk   the served APK
 ├── fastlane\metadata\android\en-US\   the F-Droid store listing — see Publishing
 │   ├── title.txt                 }
@@ -450,32 +453,25 @@ against it, so the URL is useless without it):
 https://micheal-jiaming.github.io/Pomodoro-timer-Android/fdroid/repo?fingerprint=8403BEEFFFB9AD148C5E428FC951D84E48DA9DE7ACB6DB3E5C1DE6158DD69DAC
 ```
 
-> **Status: built, signed, verified, and waiting on one push.** GitHub Pages is enabled and
-> configured for `docs/` on `main`, the repository content is committed, and its integrity has
-> been checked — but the commits carrying it have not been pushed, so the URL above returns
-> 404. Until `main` reaches GitHub there is no repository for anyone to add.
+> **Status: live.** Pushed on 28 August 2026, the GitHub Pages build succeeded, and the
+> repository serves. Verified rather than assumed: five files were downloaded from the public
+> address and hashed against their local copies — `index-v2.json`, `entry.jar`, `index-v1.jar`,
+> `icons/icon.png` and the 6 MB APK — and all five were byte-identical. That also confirms
+> `.nojekyll` is doing its job, since Jekyll would have rewritten content and broken signature
+> verification. The full client-side check was then repeated on the downloaded bytes alone: the
+> served index attests the served APK at `43d3c768…` and the served icon at `cb4b010c…`, and
+> both match.
 >
-> **This shows up on GitHub as a failed Actions run**, and it is expected rather than a defect
-> in the app. Enabling Pages queued a `pages build and deployment` job immediately; it tried to
-> build from a `docs/` that does not exist on the remote and died with
-> `No such file or directory @ dir_chdir0 - /github/workspace/docs`. The push both supplies the
-> directory and triggers a fresh run. The APK on the v1.1.13 release is unaffected — it was
-> downloaded, hash-checked and installed successfully before any of this.
+> **Still unproven: no F-Droid client has installed from it.** Everything up to the client is
+> verified, but nobody has yet pasted the address into F-Droid on a phone, watched it pin the
+> fingerprint, and installed the app. That is the last untested link in the chain, and it needs
+> a device rather than a checksum.
 >
-> **Why the push has to be run by hand.** The workspace `quality_gate.py` hook refuses a
-> `git push` issued by Claude Code unless `safety-engineer` and `quality-engineer` have both
-> recorded a pass for the exact content digest being pushed. Both agents were run and both
-> returned **pass**; `quality-engineer` recorded its marker, but `safety-engineer` was blocked
-> from running the `mark` command by the sandbox permission classifier, repeatably and across
-> sessions. Writing another agent's verdict on its behalf would forge the attestation the gate
-> exists to collect, so it was not done. The hook only intercepts Claude Code's own tool calls,
-> so the push works normally from a terminal:
->
-> ```
-> git -C "D:\claude\Pomodoro timer Android" push origin main
-> ```
->
-> Note that the app's own repository has no CI, so nothing else runs on push.
+> The earlier `pages build and deployment` failure in the Actions history is expected and
+> resolved. Enabling Pages queued a build immediately, against a `docs/` that did not yet exist
+> on the remote, and it died with
+> `No such file or directory @ dir_chdir0 - /github/workspace/docs`. The push supplied the
+> directory and the next run succeeded.
 
 Served by **GitHub Pages** from `docs/` on `main`, which is why `docs/fdroid/repo/` is
 committed — Pages can only serve what is in git. That includes the APK, which is a deliberate
@@ -491,7 +487,8 @@ of the run that failed above. Do not delete it when refreshing the repository co
 
 **The tooling lives outside this repository**, at `D:\claude\fdroid-repo`, and must stay
 there: its `config.yml` holds the repo signing password in clear text and `keystore.p12` is
-the repo signing key. Neither is in git and neither can be. Losing them means the repository
+the repo signing key. `fdroid-update.py` lives there too — it is the wrapper the publish
+steps below call, and it belongs with the config it operates on rather than in this repository. Neither is in git and neither can be. Losing them means the repository
 can no longer be updated — users would have to remove and re-add it under a new fingerprint —
 but unlike the *app* signing key, it does not orphan installs.
 
@@ -502,25 +499,32 @@ copy "dist\PomodoroTimer-<ver>.apk" "D:\claude\fdroid-repo\repo\io.github.michea
 cd D:\claude\fdroid-repo
 $env:JAVA_HOME = "D:\claude\android-build\jdk-17.0.20+8"
 $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
-& "D:\python\Scripts\fdroid.exe" update
+py D:\claude\fdroid-repo\fdroid-update.py
 ```
+
+**Use `fdroid-update.py`, not `fdroid update` directly.** It is a thin wrapper that works
+around a genuine fdroidserver bug on Windows and fixes a placeholder on the generated browse
+page; running the bare command instead will crash, or silently drop the listing graphics. Both
+problems are explained under *The listing graphics, and the fdroidserver bug that blocked
+them*, and the script's own docstring carries the detail.
 
 Then copy `D:\claude\fdroid-repo\repo\` over `docs\fdroid\repo\`, delete the `status\` folder
 it regenerates (it holds local machine paths and clients do not need it), leave
 `docs\.nojekyll` in place, and commit.
 
-**Never hand-edit or hand-copy a file into `repo\` after `fdroid update` has run.** The index
-is signed, and it records the SHA-256 and byte size of everything it lists. A file changed
+**Never hand-edit or hand-copy a file into `repo\` after an update has run.** The index is
+signed, and it records the SHA-256 and byte size of everything it lists. A file changed
 afterwards no longer matches its own attestation. This is not hypothetical — it happened to
 the repo icon and is described under *Implementation notes*. If something in the repository
-needs to be different, change the input and re-run `fdroid update` so the index is signed
-against what is actually served.
+needs to be different, change the input and re-run the update so the index is signed against
+what is actually served. The single exception is `index.html`, which is *not* listed in the
+index and therefore attests nothing; `fdroid-update.py` edits it for exactly that reason.
 
-Four things about `fdroidserver` on Windows, each of which cost real time to find:
+Three things about `fdroidserver` on Windows, each of which cost real time to find:
 
 - **`JAVA_HOME` must be set**, or it aborts with `Java JDK not found! Install in standard
   location or set java_paths!`. It locates no JDK on this machine by itself. `fdroid` is also
-  not on `PATH`, so invoke `D:\python\Scripts\fdroid.exe` directly.
+  not on `PATH`, so the wrapper is invoked through `py` rather than as a command.
 - **`apksigner` must be spelled out in `config.yml`**, because fdroidserver looks for a file
   named `apksigner` and the Windows SDK only ships `apksigner.bat`.
 - **`repo_icon` resolves against the config directory, not `repo\icons\`.** The default value
@@ -531,48 +535,56 @@ Four things about `fdroidserver` on Windows, each of which cost real time to fin
   The warning it prints, `repo_icon "repo/icons/icon.png" does not exist!`, is misleading
   twice over: it formats a path it did not test, and a correctly placed icon still triggers
   a first, harmless copy of the same warning from `update.py`.
-- **Localized graphics crash it on Windows.** Putting an icon or screenshots in
-  `metadata\<packageId>\en-US\` — the documented fastlane-style layout — makes `fdroid update`
-  die with `IndexError: list index out of range`. The cause is `update.py`, in
-  `insert_localized_app_metadata`: it builds directory paths with `os.path.join` and then
-  splits them on a hard-coded `/`, so on Windows `root.split('/')` yields one element and
-  `segments[1]` is out of range. There is no layout that avoids it, because all four of the
-  globs it scans are built the same way. The consequence is recorded under *Known gaps in the F-Droid listing*.
 
-### Known gaps in the F-Droid listing
+### The listing graphics, and the fdroidserver bug that blocked them
 
-The repository is signed, self-consistent and installable, but two cosmetic fields are empty
-in the index, and both have the same cause.
+**Fixed in 1.1.19.** The listing carries its icon and four screenshots. Before that both
+fields were `null` in the index, so an F-Droid client showed the app with a blank icon and
+no screenshots, while every other field — name, summary, description, licence, category,
+source and issue links — was correct.
 
-`icon` and `screenshots` are `null` for the app, so an F-Droid client shows the entry with a
-blank icon and no screenshots. The name, summary, full description, licence, category and the
-source/issue/changelog links are all present and correct — only the graphics are missing.
+The graphics were always in the repository, under `fastlane\metadata\android\en-US\images\`.
+Handing them to fdroidserver means putting them in `metadata\<packageId>\en-US\`, its
+documented fastlane-style layout, and **that is what crashed `fdroid update` on Windows**:
 
-The graphics exist in the repository, at `fastlane\metadata\android\en-US\images\`: a 512 px
-icon and four phone screenshots, one per theme plus the custom-session dialog. Supplying them
-to fdroidserver means copying them into `metadata\<packageId>\en-US\`, and **that is what
-crashes `fdroid update` on Windows**, for the `root.split('/')` reason recorded under
-*Publishing*. The crash is in fdroidserver itself, not in anything here, and no alternative
-layout avoids it.
+```
+IndexError: list index out of range
+```
 
-The density directories `icons-120` through `icons-640` are a related symptom: `fdroid update`
-creates them but leaves them empty, and git cannot carry an empty directory, so those paths
-are absent from the served repository. Older clients that request a density-specific icon
-will get a 404 and fall back.
+Three functions in `fdroidserver\update.py` build directory paths with `os.path.join` and
+then split them on a hard-coded forward slash — `copy_triple_t_store_metadata` at line 1080,
+`insert_localized_app_metadata` at 1177, and `ingest_screenshots_from_repo_dir` at 1287. On
+Linux that is the separator and the code works. On Windows the join produces backslashes, the
+split returns a one-element list, and `segments[1]` is out of range.
 
-Options, none of them yet taken, in ascending order of cost:
+What made it hard to see is that the crash needs graphics to exist. With only a bare
+`metadata\<packageId>.yml`, the glob those functions scan matches nothing, the loop never
+runs, and `fdroid update` looks like it succeeded — it just quietly produced a listing with
+no graphics. Adding them turned silent omission into a stack trace.
 
-- Leave it. The listing reads correctly and installs correctly; it just looks plain.
-- Patch the single line in `D:\python\Lib\site-packages\fdroidserver\update.py` locally
-  (`root.split('/')` → splitting on `os.sep`) and re-run. One line, but it edits an installed
-  library, so it is silently undone by the next `pip install --upgrade fdroidserver` and it
-  affects every project on this machine.
-- Run `fdroid update` under WSL or any Linux, where the path separator makes the bug
-  unreachable. Correct, and the closest thing to an upstream-supported answer.
+**The workaround is `D:\claude\fdroid-repo\fdroid-update.py`**, which is now the supported way
+to run an update on this machine. It does not modify the installed package. It wraps those
+three functions so that `os.walk` and `glob.glob` hand back forward slashes for the duration
+of each call, which makes the existing `split('/')` correct as written; Windows accepts
+forward slashes in every path API, so the copies still land where they should. The patch is
+restored in a `finally` rather than applied globally, because other parts of fdroidserver
+compare paths as strings. The alternative — editing the one line in
+`D:\python\Lib\site-packages\fdroidserver\update.py` — was rejected because the next
+`pip install --upgrade fdroidserver` would silently undo it, and it would apply to every
+project on the machine.
 
-This is deliberately recorded rather than fixed, because the fix is a choice between editing
-someone else's installed package and introducing a second toolchain, and neither belongs in
-an unattended change.
+The same script also rewrites one string on the generated browse page. fdroidserver hardcodes
+`title="QR: test"` and `alt="QR: test"` in `index.py:204-205` with no config key behind them,
+so the placeholder is publicly visible and every run reintroduces it. Rewriting `index.html`
+is safe **only because it is not listed in the signed index** and therefore carries no
+attestation — it is the one file under `repo\` that may be modified after signing, and the
+script does it there rather than by hand precisely so it survives the next regeneration.
+
+One cosmetic point remains, and is not worth acting on: `fdroid update` creates
+`icons-120` through `icons-640` and leaves them empty, and git cannot carry an empty
+directory, so those paths are absent from the served repository. A client asking for a
+density-specific icon gets a 404 and falls back to the icon in the index, which is present
+and correct.
 
 ### Why F-Droid, and not the obvious two
 
