@@ -555,7 +555,12 @@ Three functions in `fdroidserver\update.py` build directory paths with `os.path.
 then split them on a hard-coded forward slash — `copy_triple_t_store_metadata` at line 1080,
 `insert_localized_app_metadata` at 1177, and `ingest_screenshots_from_repo_dir` at 1287. On
 Linux that is the separator and the code works. On Windows the join produces backslashes, the
-split returns a one-element list, and `segments[1]` is out of range.
+split returns a one-element list, and the next index into it is out of range — `segments[1]`
+in the latter two, `segments[-2]` one line further on in `copy_triple_t_store_metadata`.
+
+Only the latter two ever run here. `copy_triple_t_store_metadata` scans under `build\`, which
+a binary-only repository does not have; it is worked around anyway because it carries the
+identical defect and would bite the moment anything is built from source.
 
 What made it hard to see is that the crash needs graphics to exist. With only a bare
 `metadata\<packageId>.yml`, the glob those functions scan matches nothing, the loop never
